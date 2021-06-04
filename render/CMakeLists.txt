@@ -1,10 +1,28 @@
 cmake_minimum_required(VERSION 3.19)
-
-include_directories(${EIGEN3_INCLUDE_DIR})
-
-add_executable(render main.cpp bounding_box.h ray.h scene.h rt_render.h bvh.h triangle.h)
+project(render)
 
 
-target_link_libraries(render
+############################################################
+# target: render
+############################################################
+add_executable(${PROJECT_NAME}
+        main.cpp
+        src/bounding_box.cpp
+        src/triangle.cpp)
+target_link_libraries(render PRIVATE
         ${SQLite3_LIBRARIES}
-        )
+        fmt::fmt
+        spdlog::spdlog)
+
+
+############################################################
+# unit test
+############################################################
+add_executable(bounding_box
+        unit_test/test_bounding_box.cpp
+        src/bounding_box.cpp)
+target_link_libraries(bounding_box PRIVATE
+        Eigen3::Eigen
+        fmt::fmt
+        Catch2::Catch2
+        spdlog::spdlog)

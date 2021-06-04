@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.19)
+project(demo)
 
 
-add_executable(sql_demo sql.cpp)
-target_link_libraries(sql_demo ${SQLite3_LIBRARIES})
+############################################################
+# target: demo
+############################################################
+add_executable(${PROJECT_NAME} sql.cpp)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        SQLite::SQLite3)
+

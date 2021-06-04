@@ -5,8 +5,11 @@
 #include "bvh.h"
 #include "object.h"
 
-class Triangle {
+
+class Triangle : public Object {
 public:
+    Triangle(Eigen::Vector3f v0, Eigen::Vector3f v1,
+             Eigen::Vector3f v2);
 
 private:
     Eigen::Vector3f A, B, C;

@@ -4,10 +4,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <sqlite3.h>
+#include "config.h"
 
-#ifndef DB_PATH
-#error no database path defined
-#endif
 
 
 const int BUFFER_SIZE = 512;

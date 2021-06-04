@@ -1,0 +1,9 @@
+#ifndef RENDER_DEBUG_CONFIG_H
+#define RENDER_DEBUG_CONFIG_H
+
+
+const char *DB_PATH = "${DB_PATH}";
+
+
+
+#endif

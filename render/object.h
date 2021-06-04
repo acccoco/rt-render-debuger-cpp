@@ -10,6 +10,7 @@ public:
 private:
     virtual Intersection intersect() = 0;
     virtual BoundingBox bdbox_get() = 0;
+    BoundingBox box;
 };
 
 #endif //RENDER_DEBUG_OBJECT_H

@@ -2,39 +2,34 @@ cmake_minimum_required(VERSION 3.19)
 project(render_debug)
 
 
-# C++ 编译相关
+############################################################
+# 编译选项
+############################################################
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 
-# 路径定义
-set(ROOT_DIR "${PROJECT_SOURCE_DIR}")
-set(DB_PATH "${ROOT_DIR}/render.db")
+############################################################
+# 数据库的路径
+############################################################
+set(DB_PATH "${CMAKE_SOURCE_DIR}/render.sqlite3")
+configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
+include_directories(${CMAKE_BINARY_DIR})
 
 
-# 添加路径宏定义
-add_definitions(-DDB_PATH="${DB_PATH}")
+############################################################
+# 第三方库
+############################################################
+find_package(SQLite3 REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(fmt REQUIRED)
+find_package(Catch2 REQUIRED)
+find_package(spdlog REQUIRED)
 
 
-# sqlite3
-find_package(SQLite3)
-if (NOT SQLite3_FOUND)
-    message(FATAL_ERROR "can not find SQLite3")
-endif()
-message(STATUS "found SQLite3")
-message(STATUS "libraries: ${SQLite3_LIBRARIES}")
-
-
-# eigen
-find_package(Eigen3)
-if (NOT Eigen3_FOUND)
-    message(FATAL_ERROR "can not find Eigen3")
-endif()
-message(STATUS "found Eigen3")
-message(STATUS "include: ${EIGEN3_INCLUDE_DIR}")
-
-
+############################################################
 # 子项目
+############################################################
 add_subdirectory(render)
 add_subdirectory(debugger)
 add_subdirectory(demo)
