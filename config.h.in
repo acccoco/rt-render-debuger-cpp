@@ -2,8 +2,28 @@
 #define RENDER_DEBUG_CONFIG_H
 
 
-const char *DB_PATH = "${DB_PATH}";
+// =========================================================
+// 渲染信息的数据库
+// =========================================================
+static const char *DB_PATH = "${DB_PATH}";
 
 
+// =========================================================
+// 光线追踪产生的渲染图
+// =========================================================
+static const char *RT_RES = "${RT_RES}";
+static const char *TEST_RT_RES = "${CMAKE_SOURCE_DIR}/test.ppm";
+
+
+// =========================================================
+// 测试相关的模型文件
+// =========================================================
+static const char *ASSETS_DIR = "${ASSETS_DIR}";
+static const char *PATH_CORNELL_FLOOR = "${PATH_CORNELL_FLOOR}";
+static const char *PATH_CORNELL_LEFT = "${PATH_CORNELL_LEFT}";
+static const char *PATH_CORNELL_LIGHT = "${PATH_CORNELL_LIGHT}";
+static const char *PATH_CORNELL_RIGHT = "${PATH_CORNELL_RIGHT}";
+static const char *PATH_CORNELL_SHORTBOX = "${PATH_CORNELL_SHORTBOX}";
+static const char *PATH_CORNELL_TALLBOX = "${PATH_CORNELL_TALLBOX}";
 
 #endif

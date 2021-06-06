@@ -1,3 +1,4 @@
+#include "../utils.h"
 #include "../bounding_box.h"
 
 
@@ -16,12 +17,11 @@ Eigen::Vector3f BoundingBox::center() const {
     return 0.5f * p_min + 0.5f * p_max;
 }
 
-inline bool
-intersect_partial(float &t_min, float &t_max, const float origin,
-                  const float direction, const float box_min,
-                  const float box_max) {
+inline bool intersect_partial(float &t_min, float &t_max,
+                              const float origin, const float direction,
+                              const float box_min, const float box_max) {
     // 射线与包围盒平行
-    if (direction < std::numeric_limits<float>::epsilon()) {
+    if (std::abs(direction) < std::numeric_limits<float>::epsilon()) {
         if (origin > box_max || origin < box_min)
             return false;
         t_min = -std::numeric_limits<float>::infinity();
@@ -36,17 +36,13 @@ intersect_partial(float &t_min, float &t_max, const float origin,
     return t_max > 0.f;
 }
 
-bool BoundingBox::is_intersect(const Eigen::Vector3f &origin,
-                               const Eigen::Vector3f &dir) {
+bool BoundingBox::is_intersect(const Ray &ray) const {
     float t_min_x, t_max_x, t_min_y, t_max_y, t_min_z, t_max_z;
-    if (!intersect_partial(t_min_x, t_max_x, origin.x(), dir.x(), p_min.x(),
-                           p_max.x()))
+    if (!intersect_partial(t_min_x, t_max_x, ray.origin().x(), ray.direction().get().x(), p_min.x(), p_max.x()))
         return false;
-    if (!intersect_partial(t_min_y, t_max_y, origin.y(), dir.y(), p_min.y(),
-                           p_max.y()))
+    if (!intersect_partial(t_min_y, t_max_y, ray.origin().y(), ray.direction().get().y(), p_min.y(), p_max.y()))
         return false;
-    if (!intersect_partial(t_min_z, t_max_z, origin.z(), dir.z(), p_min.z(),
-                           p_max.z()))
+    if (!intersect_partial(t_min_z, t_max_z, ray.origin().z(), ray.direction().get().z(), p_min.z(), p_max.z()))
         return false;
 
     float t_min = std::max(t_min_x, std::max(t_min_y, t_min_z));
@@ -55,8 +51,8 @@ bool BoundingBox::is_intersect(const Eigen::Vector3f &origin,
 }
 
 
-inline Eigen::Vector3f
-max_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
+// 找到两个点所有维度的最大值，生成一个新的点
+inline Eigen::Vector3f max_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
     return Eigen::Vector3f{
             std::max(p1.x(), p2.x()),
             std::max(p1.y(), p2.y()),
@@ -64,8 +60,8 @@ max_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
     };
 }
 
-inline Eigen::Vector3f
-min_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
+// 找到两个点所有维度的最小值，生成一个新的点
+inline Eigen::Vector3f min_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
     return Eigen::Vector3f{
             std::min(p1.x(), p2.x()),
             std::min(p1.y(), p2.y()),
@@ -73,8 +69,7 @@ min_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
     };
 }
 
-BoundingBox
-BoundingBox::union_(const BoundingBox &box1, const BoundingBox &box2) {
+BoundingBox BoundingBox::union_(const BoundingBox &box1, const BoundingBox &box2) {
     BoundingBox box;
     box.p_max = max_p(box1.p_max, box2.p_max);
     box.p_min = min_p(box1.p_min, box2.p_min);
@@ -89,7 +84,6 @@ BoundingBox::BoundingBox() {
     p_max = Eigen::Vector3f{min_num, min_num, min_num};
 }
 
-BoundingBox::BoundingBox(const Eigen::Vector3f &p) : p_min(p), p_max(p) {}
 
 void BoundingBox::union_(const Eigen::Vector3f &p) {
     p_max = max_p(p_max, p);
@@ -105,4 +99,17 @@ std::ostream &operator<<(std::ostream &os, const BoundingBox &box) {
 BoundingBox::BoundingBox(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
     p_max = max_p(p1, p2);
     p_min = min_p(p1, p2);
+}
+
+void BoundingBox::union_(const BoundingBox &box) {
+    p_max = max_p(p_max, box.p_max);
+    p_min = min_p(p_min, box.p_min);
+}
+
+bool BoundingBox::contain(const Eigen::Vector3f &point) const {
+
+    if (point.x() < p_min.x() - epsilon_4 || point.x() > p_max.x() + epsilon_4) return false;
+    if (point.y() < p_min.y() - epsilon_4 || point.y() > p_max.y() + epsilon_4) return false;
+    if (point.z() < p_min.z() - epsilon_4 || point.z() > p_max.z() + epsilon_4) return false;
+    return true;
 }

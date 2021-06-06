@@ -4,16 +4,15 @@
 #include <iostream>
 #include <stdexcept>
 #include <sqlite3.h>
+#include <fmt/format.h>
 #include "config.h"
-
-
-
-const int BUFFER_SIZE = 512;
-char buffer[BUFFER_SIZE];
-char *err_msg;
+#include <chrono>
+#include <thread>
 
 
 int main() {
+    char *err_msg;
+
     /* open database */
     sqlite3 *db = nullptr;
     if (SQLITE_OK != sqlite3_open(DB_PATH, &db)) {
@@ -21,20 +20,26 @@ int main() {
     }
 
     /* insert */
-    snprintf(buffer, BUFFER_SIZE, "insert into user(name, age) values('%s', '%d')", "aoe", 12);
-    if (SQLITE_OK != sqlite3_exec(db, buffer, nullptr, nullptr, &err_msg)) {
+    auto insert_str = fmt::format("insert into user(name, age) values('{}', '{}')", "ao", 12);
+    if (SQLITE_OK != sqlite3_exec(db, insert_str.c_str(), nullptr, nullptr, &err_msg)) {
         throw std::runtime_error(err_msg);
     }
 
     /* select */
-    snprintf(buffer, BUFFER_SIZE, "select name from user");
+    auto select_str = fmt::format("select name from user");
     sqlite3_stmt *stmt = nullptr;
-    if (SQLITE_OK != sqlite3_prepare_v2(db, buffer, -1, &stmt, nullptr)) {
+    if (SQLITE_OK != sqlite3_prepare_v2(db, select_str.c_str(), -1, &stmt, nullptr)) {
         throw std::runtime_error("fail to select");
     }
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         auto name = sqlite3_column_text(stmt, 0);
         std::cout << "name is: " << name << std::endl;
+    }
+
+    for (int i = 0; i < 10; ++i) {
+        fmt::print("\rprogress: {}%.", i);
+        fflush(stdout);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     /* close database */

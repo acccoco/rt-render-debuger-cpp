@@ -1,51 +1,59 @@
 #include <iostream>
 #include <stdexcept>
 #include <sqlite3.h>
+
+#include "config.h"
+
 #include "material.h"
 #include "intersection.h"
 #include "object.h"
 #include "bounding_box.h"
 #include "ray.h"
 #include "scene.h"
+#include "utils.h"
 #include "rt_render.h"
 #include "triangle.h"
 
-#ifndef DB_PATH
-#error no database path defined
-#endif
-
-
-const int BUFFER_SIZE = 512;
-char buffer[BUFFER_SIZE];
-char *err_msg;
-
 
 int main() {
-    /* open database */
-    sqlite3 *db = nullptr;
-    if (SQLITE_OK != sqlite3_open(DB_PATH, &db)) {
-        throw std::runtime_error("error");
-    }
+    // 导入模型
+    auto floor = MeshTriangle::mesh_load(PATH_CORNELL_FLOOR)[0];
+    floor->material().set_diffuse(color_cornel_white);
+    auto left = MeshTriangle::mesh_load(PATH_CORNELL_LEFT)[0];
+    left->material().set_diffuse(color_cornel_red);
+    auto right = MeshTriangle::mesh_load(PATH_CORNELL_RIGHT)[0];
+    right->material().set_diffuse(color_cornel_green);
+    auto tall_box = MeshTriangle::mesh_load(PATH_CORNELL_TALLBOX)[0];
+    tall_box->material().set_diffuse(color_cornel_white);
+    auto shot_box = MeshTriangle::mesh_load(PATH_CORNELL_SHORTBOX)[0];
+    shot_box->material().set_diffuse(color_cornel_white);
+    auto light = MeshTriangle::mesh_load(PATH_CORNELL_LIGHT)[0];
+    light->material().set_emission(color_cornel_light);
 
-    /* insert */
-    snprintf(buffer, BUFFER_SIZE, "insert into user(name, age) values('%s', '%d')", "aoe", 12);
-    if (SQLITE_OK != sqlite3_exec(db, buffer, nullptr, nullptr, &err_msg)) {
-        throw std::runtime_error(err_msg);
-    }
+    // 构建场景
+    auto scene = std::make_shared<Scene>(200, 200, 40.f,
+                                         Eigen::Vector3f{0.f, 0.f, 1.f},
+                                         Eigen::Vector3f{278.f, 273.f, -800.f});
+    scene->obj_add(floor);
+    scene->obj_add(left);
+    scene->obj_add(right);
+    scene->obj_add(light);
+    scene->obj_add(tall_box);
+    scene->obj_add(shot_box);
+    scene->build();
 
-    /* select */
-    snprintf(buffer, BUFFER_SIZE, "select name from user");
-    sqlite3_stmt *stmt = nullptr;
-    if (SQLITE_OK != sqlite3_prepare_v2(db, buffer, -1, &stmt, nullptr)) {
-        throw std::runtime_error("fail to select");
-    }
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
-        auto name = sqlite3_column_text(stmt, 0);
-        std::cout << "name is: " << name << std::endl;
-    }
+    // 建立渲染器
+    RTRender render(scene);
 
-    /* close database */
-    sqlite3_close(db);
+    // 进行渲染
+    auto start = std::chrono::system_clock::now();
+    render.render(128);
+    auto stop = std::chrono::system_clock::now();
+    fmt::print("\nrender complete\ntime taken: {} hours, {} minutes, {} seconds\n",
+               std::chrono::duration_cast<std::chrono::hours>(stop - start).count(),
+               std::chrono::duration_cast<std::chrono::minutes>(stop - start).count(),
+               std::chrono::duration_cast<std::chrono::seconds>(stop - start).count());
+
     return 0;
 }
 
