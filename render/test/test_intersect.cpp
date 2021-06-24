@@ -2,15 +2,19 @@
 #include <string>
 
 #include <fmt/format.h>
+
 #ifndef CATCH_CONFIG_MAIN
 #define CATCH_CONFIG_MAIN
 #endif
+
+#include <spdlog/spdlog.h>
 #include <catch2/catch.hpp>
 
 #include "../bvh.h"
 #include "../utils.h"
+#include "../scene.h"
 #include "../triangle.h"
-
+#include "config.h"
 
 TEST_CASE("AABB-interseciton 包围盒-计算交点")
 {
@@ -178,3 +182,47 @@ TEST_CASE("mesh triangle intersect 三角形模型相交计算") {
     }
 }
 
+
+/**
+ * 这个测试来源于一次渲染，场景为 cornell-box
+ *      如果光线的参数如下：
+ *          origin = (276.01166, 271.01166, 292.58508)
+ *          direction = (-0.11780899, -0.05907492, -0.9912776)
+ *      那么交点坐标为：
+ *          pos = (276.01166, 271.01166, 292.585)
+ *      也就是说，离开物体的光线又和自身发生了相交
+ */
+TEST_CASE("在场景中采样，这个测试来源于一次渲染") {
+    // 导入模型
+    auto floor = MeshTriangle::mesh_load(PATH_CORNELL_FLOOR)[0];
+    floor->material().set_diffuse(color_cornel_white);
+    auto left = MeshTriangle::mesh_load(PATH_CORNELL_LEFT)[0];
+    left->material().set_diffuse(color_cornel_red);
+    auto right = MeshTriangle::mesh_load(PATH_CORNELL_RIGHT)[0];
+    right->material().set_diffuse(color_cornel_green);
+    auto tall_box = MeshTriangle::mesh_load(PATH_CORNELL_TALLBOX)[0];
+    tall_box->material().set_diffuse(color_cornel_white);
+    auto shot_box = MeshTriangle::mesh_load(PATH_CORNELL_SHORTBOX)[0];
+    shot_box->material().set_diffuse(color_cornel_white);
+    auto light = MeshTriangle::mesh_load(PATH_CORNELL_LIGHT)[0];
+    light->material().set_emission(color_cornel_light);
+
+    // 构建场景
+    auto scene = std::make_shared<Scene>(200, 200, 40.f,
+                                         Eigen::Vector3f{0.f, 0.f, 1.f},
+                                         Eigen::Vector3f{278.f, 273.f, -800.f});
+    scene->obj_add(floor);
+    scene->obj_add(left);
+    scene->obj_add(right);
+    scene->obj_add(light);
+    scene->obj_add(tall_box);
+    scene->obj_add(shot_box);
+    scene->build();
+
+    /* 用于测试的 ray */
+    Ray ray(Eigen::Vector3f{276.01166, 271.01166, 292.58508},
+            Eigen::Vector3f{-0.11780899, -0.05907492, -0.9912776});
+
+    auto inter = scene->intersect(ray);
+    spdlog::info("inter pos: ({}, {}, {})", inter.pos().x(), inter.pos().y(), inter.pos().z());
+}

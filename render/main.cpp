@@ -5,14 +5,12 @@
 #include "config.h"
 
 #include "material.h"
-#include "intersection.h"
-#include "object.h"
-#include "bounding_box.h"
 #include "ray.h"
 #include "scene.h"
 #include "utils.h"
 #include "rt_render.h"
 #include "triangle.h"
+#include "ray_path_serialize.h"
 
 
 int main() {
@@ -42,18 +40,19 @@ int main() {
     scene->obj_add(shot_box);
     scene->build();
 
-    // 建立渲染器
-    RTRender render(scene);
-
-    // 进行渲染
+    /* 进行渲染 */
+    RTRender::init(scene, 1);
     auto start = std::chrono::system_clock::now();
-    render.render(128);
+    RTRender::render_multi_thread(DB_PATH, 4, 400, 100, 500);
+    //RTRender::render_single_thread(DB_PATH);
     auto stop = std::chrono::system_clock::now();
+    RTRender::write_to_file(RTRender::framebuffer, RT_RES, scene->screen_width(), scene->screen_height());
+
+    /* 统计耗时 */
     fmt::print("\nrender complete\ntime taken: {} hours, {} minutes, {} seconds\n",
                std::chrono::duration_cast<std::chrono::hours>(stop - start).count(),
-               std::chrono::duration_cast<std::chrono::minutes>(stop - start).count(),
-               std::chrono::duration_cast<std::chrono::seconds>(stop - start).count());
-
+               std::chrono::duration_cast<std::chrono::minutes>(stop - start).count() % 60,
+               std::chrono::duration_cast<std::chrono::seconds>(stop - start).count() % 60);
     return 0;
 }
 

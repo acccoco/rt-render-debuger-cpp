@@ -7,23 +7,20 @@ project(render_debug)
 ############################################################
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 
 ############################################################
-# 存放渲染信息的数据库
+# 头文件和链接目录
 ############################################################
-set(DB_PATH "${CMAKE_SOURCE_DIR}/render.sqlite3")
+include_directories(/opt/homebrew/include)
+link_directories(/opt/homebrew/lib)
 
 
 ############################################################
-# 结果文件
-############################################################
-set(RT_RES "${CMAKE_SOURCE_DIR}/rt.ppm")
-
-
+# 注入头文件
 ############################################################
 # 测试相关的模型
-############################################################
 set(ASSETS_DIR "${CMAKE_SOURCE_DIR}/assets/")
 set(PATH_CORNELL "${CMAKE_SOURCE_DIR}/assets/cornell-box")
 set(PATH_CORNELL_FLOOR "${PATH_CORNELL}/floor.obj")
@@ -32,11 +29,11 @@ set(PATH_CORNELL_LIGHT "${PATH_CORNELL}/light.obj")
 set(PATH_CORNELL_RIGHT "${PATH_CORNELL}/right.obj")
 set(PATH_CORNELL_SHORTBOX "${PATH_CORNELL}/shortbox.obj")
 set(PATH_CORNELL_TALLBOX "${PATH_CORNELL}/tallbox.obj")
-
-
-############################################################
+# 存放渲染信息的数据库
+set(DB_PATH "${CMAKE_SOURCE_DIR}/render.sqlite3")
+# 渲染结果文件
+set(RT_RES "${CMAKE_SOURCE_DIR}/rt.ppm")
 # 注入头文件
-############################################################
 configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
 include_directories(${CMAKE_BINARY_DIR})
 
@@ -50,15 +47,6 @@ find_package(fmt REQUIRED)
 find_package(Catch2 REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(assimp REQUIRED)
-
-
-############################################################
-# Assimp 的特殊需求
-############################################################
-include_directories(${ASSIMP_INCLUDE_DIRECTORIES})
-if (APPLE)
-    link_directories(/opt/homebrew/Cellar/assimp/5.0.1/lib)
-endif()
 
 
 ############################################################

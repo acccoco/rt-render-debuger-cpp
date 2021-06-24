@@ -13,48 +13,54 @@
 #include "../task.h"
 
 
-// 用于测试的任务
-struct TestTask {
-    int task_id;
-};
+TEST_CASE("worker") {
+    /* 给 worker 执行的任务类型 */
+    struct Task {
+        int task_id;
+    };
 
-// 用于测试的结果类型
-struct TestResult {
-    int task_id;
-    int result;
-};
+    /* 任务处理后生成的结果 */
+    struct Result {
+        int task_id;
+        int res;
+    };
 
+    /* 处理任务的函数 */
+    auto job = [](const Task &task) {
+        return Result{task.task_id, task.task_id + 1};
+    };
 
-struct Foo {
-    std::vector<TestResult> result_container;
+    /* 任务列表 */
+    int task_cnt = 10000;
+    std::vector<Task> task_list(task_cnt);
+    for (int i = 0; i < task_cnt; ++i)
+        task_list[i] = Task{i};
+    std::mutex task_mtx;
 
-    // 给 bee 执行的函数
-    TestResult bee_job(const TestTask &task) {
-        return TestResult{task.task_id, task.task_id + 1};
+    /* 结果列表 */
+    std::vector<Result> result_list;
+    std::mutex result_mtx;
+
+    /* 初始化 worker */
+    std::vector<Worker<Task, Result>>
+            workers(32, Worker<Task, Result>(
+            task_list, task_mtx, result_list, result_mtx, job,
+            1, 50));
+
+    /* 让 worker 运行 */
+    for (auto &worker : workers)
+        worker.start();
+
+    /* 回收 worker */
+    while (result_list.size() < task_cnt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+    for (auto &worker : workers)
+        worker.stop();
 
-    // 给 ant 执行的函数
-    void ant_job(const TestResult &result) {
-        result_container.push_back(result);
+    /* 验证结果 */
+    for (int i = 0; i < task_cnt; ++i) {
+        REQUIRE(result_list[i].res == result_list[i].task_id + 1);
     }
-};
-
-
-
-TEST_CASE("task") {
-    std::deque<TestTask> task_list;
-    unsigned int total_task_cnt = 10000;
-    for (int i = 0; i < total_task_cnt; ++i) {
-        task_list.push_back(TestTask{i});
-    }
-
-    Foo foo;
-    auto bee_job = [ObjectPtr = &foo](auto && PH1) { return ObjectPtr->bee_job(std::forward<decltype(PH1)>(PH1)); };
-    auto ant_job = [ObjectPtr = &foo](auto && PH1) { ObjectPtr->ant_job(std::forward<decltype(PH1)>(PH1)); };
-    Giraffe<TestTask, TestResult> giraffe(16, 100, 100, 50,
-                                          bee_job, ant_job, task_list);
-
-    giraffe.run();
-
-    REQUIRE(foo.result_container.size() == total_task_cnt);
 }
+

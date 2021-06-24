@@ -36,12 +36,6 @@ int main() {
         std::cout << "name is: " << name << std::endl;
     }
 
-    for (int i = 0; i < 10; ++i) {
-        fmt::print("\rprogress: {}%.", i);
-        fflush(stdout);
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-
     /* close database */
     sqlite3_close(db);
     return 0;

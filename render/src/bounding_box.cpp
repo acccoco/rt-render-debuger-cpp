@@ -1,5 +1,5 @@
-#include "../utils.h"
-#include "../bounding_box.h"
+#include "bounding_box.h"
+#include "utils.h"
 
 
 ExtensionDir BoundingBox::max_extension() const {

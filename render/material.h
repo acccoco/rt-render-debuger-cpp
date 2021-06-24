@@ -2,6 +2,8 @@
 #ifndef RENDER_DEBUG_METERIAL_H
 #define RENDER_DEBUG_METERIAL_H
 
+#include <memory>
+
 #include <Eigen/Eigen>
 
 #include "ray.h"
@@ -109,6 +111,7 @@ public:
     // =========================================================
     static std::tuple<float, Direction> sample_himsphere_random(const Direction &N);
 
+    /* 将 local 坐标转换为 global 坐标，local 坐标系由 N 定义 */
     static Direction local_to_world(const Direction &N, const Direction &local);
 
 

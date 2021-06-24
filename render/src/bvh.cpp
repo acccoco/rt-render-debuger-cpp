@@ -1,5 +1,5 @@
-#include "../bvh.h"
-#include "../utils.h"
+#include "bvh.h"
+#include "utils.h"
 
 
 std::tuple<std::vector<std::shared_ptr<Object>>, std::shared_ptr<Object>, std::vector<std::shared_ptr<Object>>>
@@ -9,7 +9,7 @@ find_kth_obj(const std::vector<std::shared_ptr<Object>> &objs, unsigned int k, E
 
     // 只有一个图形的情况
     if (n_size == 1) {
-        return {{}, objs[0], {}};
+        return {std::vector<std::shared_ptr<Object>>{}, objs[0], std::vector<std::shared_ptr<Object>>{}};
     }
 
     // 以第一个 Obejct 为参考，来切分 objects

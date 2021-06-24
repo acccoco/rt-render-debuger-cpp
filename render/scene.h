@@ -12,8 +12,9 @@
 class Scene {
 public:
 
-    Scene(int screen_width, int screen_height, float fov, const Eigen::Vector3f &camera_look_at, const Eigen::Vector3f &camera_pos)
-            : _screen_width(screen_width), _screen_height(screen_height), _fov(fov), _camera{camera_look_at, camera_pos} {
+    Scene(int screen_width, int screen_height, float fov, const Eigen::Vector3f &camera_look_at,
+          const Eigen::Vector3f &camera_pos)
+            : _screen_width(screen_width), _screen_height(screen_height), _camera{camera_look_at, camera_pos, fov} {
         assert(screen_height > 0);
         assert(fov > 0.f && fov < 180.f);
         assert(camera_look_at.norm() > 0.f);
@@ -30,13 +31,13 @@ public:
 
     inline int screen_height() const { return _screen_height; }
 
-    inline float fov() const { return _fov; }
+    inline float fov() const { return _camera.fov; }
 
     inline Eigen::Vector3f camera_pos() const { return _camera.pos; };
 
     // 从摄像机坐标系变换到 global 坐标系
-    inline Eigen::Vector4f local_to_global(const Eigen::Vector4f &vec) {
-        return this->_camera.local_to_global * vec;
+    inline Eigen::Vector4f view_to_global(const Eigen::Vector4f &vec) {
+        return this->_camera.view_matrix_inverse * vec;
     }
 
     // 建立加速结构
@@ -57,12 +58,12 @@ public:
 
 private:
     int _screen_width, _screen_height;
-    float _fov;
 
     struct {
         Direction look_at;
         Eigen::Vector3f pos;
-        Eigen::Matrix4f local_to_global;
+        float fov;
+        Eigen::Matrix4f view_matrix_inverse;            /* 将摄像机坐标系变换到世界坐标系 */
     } _camera;
 
     // 生成摄像机的矩阵
@@ -77,7 +78,7 @@ private:
         auto &j = up;
         auto k = -this->_camera.look_at.get();
 
-        this->_camera.local_to_global << i.x(), j.x(), k.x(), this->_camera.pos.x(),
+        this->_camera.view_matrix_inverse << i.x(), j.x(), k.x(), this->_camera.pos.x(),
                 i.y(), j.y(), k.y(), this->_camera.pos.y(),
                 i.z(), j.z(), k.z(), this->_camera.pos.z(),
                 0, 0, 0, 1;

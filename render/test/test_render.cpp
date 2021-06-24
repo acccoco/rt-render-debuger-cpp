@@ -2,77 +2,94 @@
 #define CATCH_CONFIG_MAIN
 #endif
 
-#include <string>
-
 #include <fmt/format.h>
 #include <spdlog/spdlog.h>
+
 #include <catch2/catch.hpp>
+#include <string>
 
-#include "config.h"
-#include "../utils.h"
 #include "../triangle.h"
+#include "../utils.h"
+#include "config.h"
+#define private public
 #include "../rt_render.h"
+#undef private
 
-
-// 测试生成的光线是否争取
-TEST_CASE("task generate 测试生成的任务是否正确") {
-
-    auto scene = std::make_shared<Scene>(2, 2, 45.f,
+// 测试生成的光线是否正确
+TEST_CASE("task generate 测试生成的任务是否正确")
+{
+    auto scene = std::make_shared<Scene>(2,
+                                         2,
+                                         45.f,
                                          Eigen::Vector3f(0.f, 0.f, 1.f),
                                          Eigen::Vector3f(100.f, 100.f, 0.f));
-    RTRender render(scene);
-
-    auto tasks = render.prepare_tasks();
+    RTRender::init(scene, 16);
+    auto tasks = RTRender::_prepare_render_task(scene);
 
     REQUIRE(tasks.size() == 4);
 
     float value = std::tan(45.f / 2.f / 180.f * M_PI) / 2.f;
 
-    SECTION("所有的射线的原点") {
-        for (auto &task : tasks) {
+    SECTION("所有的射线的原点")
+    {
+        for (auto &task : tasks)
+        {
             REQUIRE((task.ray.origin() - Eigen::Vector3f(100.f, 100.f, 0.f)).norm() < epsilon_5);
         }
-    }SECTION("左上角") {
-        PixelTask task = tasks[0];
-        REQUIRE(task.screen_x == 0);
-        REQUIRE(task.screen_y == 0);
-        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(value, value, 1.f).normalized()).norm() < epsilon_5);
-    }SECTION("右上角") {
-        PixelTask task = tasks[1];
-        REQUIRE(task.screen_x == 1);
-        REQUIRE(task.screen_y == 0);
-        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(-value, value, 1.f).normalized()).norm() < epsilon_5);
-    }SECTION("左下角") {
-        PixelTask task = tasks[2];
-        REQUIRE(task.screen_x == 0);
-        REQUIRE(task.screen_y == 1);
-        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(value, -value, 1.f).normalized()).norm() < epsilon_5);
-    }SECTION("右下角") {
-        PixelTask task = tasks[3];
-        REQUIRE(task.screen_x == 1);
-        REQUIRE(task.screen_y == 1);
-        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(-value, -value, 1.f).normalized()).norm() < epsilon_5);
+    }
+    SECTION("左上角")
+    {
+        RTRender::RenderPixelTask task = tasks[0];
+        REQUIRE(task.col == 0);
+        REQUIRE(task.row == 0);
+        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(value, value, 1.f).normalized())
+                    .norm() < epsilon_5);
+    }
+    SECTION("右上角")
+    {
+        RTRender::RenderPixelTask task = tasks[1];
+        REQUIRE(task.col == 1);
+        REQUIRE(task.row == 0);
+        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(-value, value, 1.f).normalized())
+                    .norm() < epsilon_5);
+    }
+    SECTION("左下角")
+    {
+        RTRender::RenderPixelTask task = tasks[2];
+        REQUIRE(task.col == 0);
+        REQUIRE(task.row == 1);
+        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(value, -value, 1.f).normalized())
+                    .norm() < epsilon_5);
+    }
+    SECTION("右下角")
+    {
+        RTRender::RenderPixelTask task = tasks[3];
+        REQUIRE(task.col == 1);
+        REQUIRE(task.row == 1);
+        REQUIRE((task.ray.direction().get() - Eigen::Vector3f(-value, -value, 1.f).normalized())
+                    .norm() < epsilon_5);
     }
 }
 
-
-TEST_CASE("write to file 文件写入") {
+TEST_CASE("write to file 文件写入")
+{
     // 构造颜色数据：从左到右红色增加，从上到下蓝色增加
-    std::vector<std::vector<std::array<unsigned char, 3>>> buffer;
-    for (unsigned char i = 0; i < 200; ++i) {
-        std::vector<std::array<unsigned char, 3>> row;
-        for (unsigned char j = 0; j < 200; ++j) {
-            row.push_back({j, 0, i});
+    std::vector<std::array<unsigned char, 3>> framebuffer;
+    int height = 200, width = 200;
+    for (unsigned char row = 0; row < height; ++row)
+    {
+        for (unsigned char col = 0; col < width; ++col)
+        {
+            framebuffer.push_back({col, 0, row});
         }
-        buffer.push_back(row);
     }
 
     // 写文件
-    RTRender::write_to_file(buffer, TEST_RT_RES);
+    RTRender::write_to_file(framebuffer, TEST_RT_RES, width, height);
 }
 
-
-TEST_CASE("single thread 单线程小规模的计算任务") {
+TEST_CASE("single thread 单线程小规模的计算任务")
+{
     // 导入模型
     auto floor = MeshTriangle::mesh_load(PATH_CORNELL_FLOOR)[0];
     floor->material().set_diffuse(color_cornel_white);
@@ -88,7 +105,9 @@ TEST_CASE("single thread 单线程小规模的计算任务") {
     light->material().set_emission(color_cornel_light);
 
     // 构建场景
-    auto scene = std::make_shared<Scene>(64, 64, 40.f,
+    auto scene = std::make_shared<Scene>(64,
+                                         64,
+                                         40.f,
                                          Eigen::Vector3f{0.f, 0.f, 1.f},
                                          Eigen::Vector3f{278.f, 273.f, -800.f});
     scene->obj_add(floor);
@@ -99,9 +118,11 @@ TEST_CASE("single thread 单线程小规模的计算任务") {
     scene->obj_add(shot_box);
     scene->build();
 
-    // 建立渲染器
-    RTRender render(scene);
-
     // 进行渲染
-    render.render_single_thread(1);
+    RTRender::init(scene, 1);
+    RTRender::render_single_thread();
+    RTRender::write_to_file(RTRender::framebuffer,
+                            RT_RES,
+                            scene->screen_width(),
+                            scene->screen_height());
 }

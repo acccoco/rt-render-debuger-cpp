@@ -1,7 +1,9 @@
-#include "../triangle.h"
+#include "triangle.h"
+
 #include <Eigen/Eigen>
 #include <spdlog/spdlog.h>
-#include "../utils.h"
+
+#include "utils.h"
 
 Intersection Triangle::intersect(const std::shared_ptr<Triangle> &obj, const Ray &ray) {
 

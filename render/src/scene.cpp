@@ -1,5 +1,5 @@
-#include "../scene.h"
-#include "../utils.h"
+#include "scene.h"
+#include "utils.h"
 #include <fmt/format.h>
 
 

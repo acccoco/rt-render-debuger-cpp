@@ -1,8 +1,14 @@
-#include "../material.h"
-#include "../utils.h"
+#include "material.h"
+#include "utils.h"
 
 
 std::tuple<float, Direction> Material::sample_himsphere_random(const Direction &N) {
+
+    /**
+     * 按照立体角均匀采样：
+     *  - z 坐标是均匀分布的
+     *  - phi 是均匀分布的
+     */
 
     // 半球采样，pdf 是半球的立体角（2pi）分之一
     float z = random_float_get();

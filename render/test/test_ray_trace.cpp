@@ -9,9 +9,11 @@
 #include <catch2/catch.hpp>
 
 #include "config.h"
+#define private public
+#include "../rt_render.h"
+#undef private
 #include "../utils.h"
 #include "../triangle.h"
-#include "../rt_render.h"
 
 
 TEST_CASE("one ray 场景中一根光线的弹射情况") {
@@ -32,11 +34,11 @@ TEST_CASE("one ray 场景中一根光线的弹射情况") {
     scene->build();
 
     // 建立 Render 对象
-    RTRender render(scene);
+    RTRender::init(scene, 1);
 
     // 投射光线
     Ray ray({250.f, 250.f, 0.f}, {0.357f, 0.257f, 1.f});
-    std::deque<PathNode> path = render.cast_ray(ray);
+    std::deque<PathNode> path = RTRender::cast_ray(ray);
     fmt::print("path node cnt: {}\n", path.size());
 }
 
@@ -58,11 +60,9 @@ TEST_CASE("verify path 验证路径信息是否完备") {
     scene->build();
 
     // 建立 Render 对象
-    RTRender render(scene);
+    RTRender::init(scene, 1);
 
     // 投射光线
     Ray ray({250.f, 250.f, 0.f}, {0.357f, 0.257f, 1.f});
-    std::deque<PathNode> path = render.cast_ray(ray);
-
-
+    std::deque<PathNode> path = RTRender::cast_ray(ray);
 }

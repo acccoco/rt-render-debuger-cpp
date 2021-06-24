@@ -1,7 +1,7 @@
-#include "../intersection.h"
+#include "intersection.h"
 
-#include "../object.h"
-#include "../triangle.h"
+#include "object.h"
+#include "triangle.h"
 
 
 Intersection Intersection::intersect(const std::shared_ptr<Object> &obj, const Ray &ray) {

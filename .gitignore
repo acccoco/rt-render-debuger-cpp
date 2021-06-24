@@ -1,5 +1,17 @@
+
+# 系统相关
 .DS_Store
+
+# IDE 相关
 .idea/
+
+# 构建目录
 build/
 cmake-build-debug/
 cmake-build-release/
+
+# 数据库
+*.sqlite3
+
+# 结果文件
+*.ppm

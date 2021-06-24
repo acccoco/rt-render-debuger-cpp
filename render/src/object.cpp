@@ -1,5 +1,5 @@
-#include "../object.h"
-#include "../triangle.h"
+#include "object.h"
+#include "triangle.h"
 
 Intersection Object::sample_obj(const std::shared_ptr<Object> &obj, float area_threshold) {
     switch (obj->type_get()) {

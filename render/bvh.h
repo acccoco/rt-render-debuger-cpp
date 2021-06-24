@@ -12,6 +12,7 @@
 class BVH {
 public:
 
+    /* 构造函数：创建非叶子节点 */
     BVH(const BoundingBox &box, float area_, const std::shared_ptr<BVH> &lchild_, const std::shared_ptr<BVH> &rchild_)
             : _box(box),
               _area(area_),
@@ -19,6 +20,7 @@ public:
               _rchild(rchild_),
               _object(nullptr) {}
 
+    /* 构造函数：创建叶子节点 */
     BVH(const BoundingBox &box, float area_, const std::shared_ptr<Object> &obj)
             : _box(box),
               _area(area_),
@@ -35,25 +37,15 @@ public:
     // =========================================================
     // 属性
     // =========================================================
-    inline const std::shared_ptr<BVH> &lchild() const {
-        return _lchild;
-    }
+    inline const std::shared_ptr<BVH> &lchild() const { return _lchild; }
 
-    inline const std::shared_ptr<BVH> &rchild() const {
-        return _rchild;
-    }
+    inline const std::shared_ptr<BVH> &rchild() const { return _rchild; }
 
-    inline const std::shared_ptr<Object> &object() const {
-        return _object;
-    }
+    inline const std::shared_ptr<Object> &object() const { return _object; }
 
-    inline const BoundingBox &bounding_box() const {
-        return _box;
-    }
+    inline const BoundingBox &bounding_box() const { return _box; }
 
-    inline const float &area() const {
-        return _area;
-    }
+    inline const float &area() const { return _area; }
 
     // =========================================================
     // 计算交点
@@ -68,11 +60,11 @@ public:
 
 
 private:
-    BoundingBox _box;
-    float _area;
+    BoundingBox _box;                   /* 以当前节点为树根，BVH 树的包围盒 */
+    float _area;                        /* BVH 中所有对象的表面积 */
     std::shared_ptr<BVH> _lchild;
     std::shared_ptr<BVH> _rchild;
-    std::shared_ptr<Object> _object;
+    std::shared_ptr<Object> _object;    /* 当前节点包含的对象，只有叶子节点才有 */
 };
 
 

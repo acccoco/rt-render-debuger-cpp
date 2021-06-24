@@ -1,7 +1,6 @@
 #ifndef RENDER_DEBUG_RT_RENDER_H
 #define RENDER_DEBUG_RT_RENDER_H
 
-
 #include <deque>
 #include <mutex>
 #include <array>
@@ -18,239 +17,118 @@
 #include "object.h"
 #include "config.h"
 #include "task.h"
+#include "utils.h"
+#include "ray_path.h"
+#include "ray_path_serialize.h"
 
 
-// todo 整理一下这里的代码，太乱了
-
-// 路径追踪的一个节点，路径从摄像机出发
-struct PathNode {
-
-    // 设置和光源的相交信息
-    inline void
-    set_light_inter(const Eigen::Vector3f &_Li_light, const Direction &_wi_light, const Intersection &_inter_light) {
-        this->from_light.Li_light = _Li_light;
-        this->from_light.wi_light = _wi_light;
-        this->from_light.inter_light = _inter_light;
-    }
-
-    // 设置和物体的相交信息
-    inline void
-    set_obj_inter(float _RR, const Direction &_wi_object, const Intersection &_inter_obj) {
-        this->from_obj.RR = _RR;
-        this->from_obj.wi_obj = _wi_object;
-        this->from_obj.inter_obj = _inter_obj;
-    }
-
-    // 出射光线的信息
-    Eigen::Vector3f Lo{0.f, 0.f, 0.f};
-    Direction wo = Direction::zero();
-    Intersection inter = Intersection::no_intersect();
-
-    // 来自光源的入射光线
-    struct {
-        Eigen::Vector3f Li_light{0.f, 0.f, 0.f};
-        Direction wi_light = Direction::zero();
-        Intersection inter_light = Intersection::no_intersect();
-    } from_light;
-
-    // 来自物体的入射光线
-    struct {
-        float RR{-1.f};
-        Direction wi_obj = Direction::zero();
-        Intersection inter_obj = Intersection::no_intersect();
-    } from_obj;
-};
-
-
-// 每个像素的渲染任务
-struct PixelTask {
-    int screen_x, screen_y;
-    Ray ray;
-};
-
-// 数据后处理的结果
-struct PixelResult {
-    int screen_x, screen_y;
-    std::vector<std::deque<PathNode>> path_list;    // 每个像素对应的光路
-};
-
-
+/**
+ * 渲染场景，基本流程为：
+ *  RTRender::init(...);
+ *  RTRender::render();
+ *  RTRender::write_to_file();
+ */
 class RTRender {
 public:
-    RTRender(const std::shared_ptr<Scene> &scene) : _scene(scene) {
-        _frame_buffer = std::vector<std::vector<std::array<unsigned char, 3>>>(
-                scene->screen_height(), std::vector<std::array<unsigned char, 3>>(
-                        scene->screen_width(), std::array<unsigned char, 3>{0, 0, 0}));
+    /* 渲染一个像素的任务 */
+    struct RenderPixelTask {
+        int col, row;
+        Ray ray;
+    };
+
+    /* 渲染一个像素得到的结果 */
+    struct RenderPixelResult {
+        int col, row;
+        std::vector<std::deque<PathNode>> path_list; /* 每个像素对应的光路 */
+    };
+
+    using PixelType = std::array<unsigned char, 3>;
+
+    static inline std::vector<PixelType> framebuffer; /* 渲染场景得到的帧缓冲 */
+
+    /* 使用 scene 初始化渲染器，准备渲染 */
+    static void init(const std::shared_ptr<Scene> &scene, int spp) {
+        /* 创建 framebuffer，设置背景色为黑色 */
+        framebuffer = std::vector<PixelType>(scene->screen_width() * scene->screen_width(),
+                                             PixelType{0, 0, 0});
+        _scene = scene;
+        _spp = spp;
     }
 
-    // 准备渲染需要的任务
-    std::deque<PixelTask> prepare_tasks() {
-        std::deque<PixelTask> task_queue;
-
-        // 设视平面位于摄像机前方，距离为 1
-        float view_height = 2.f * std::tan(_scene->fov() / 2.f / 180.f * M_PI);
-        float view_width = view_height / _scene->screen_height() * _scene->screen_height();
-
-        // 对于每个像素点的中心点，建立任务
-        for (int i = 0; i < _scene->screen_height(); ++i) {
-            for (int j = 0; j < _scene->screen_width(); ++j) {
-                float view_x = ((j + 0.5f) / _scene->screen_width() - 0.5f) * view_width;
-                float view_y = (0.5f - (i + 0.5f) / _scene->screen_height()) * view_height;
-
-                Eigen::Vector4f dir_global = _scene->local_to_global({view_x, view_y, -1.f, 0.f});
-                Ray ray(_scene->camera_pos(), dir_global.head(3));
-
-                task_queue.push_back(PixelTask{j, i, ray});
-            }
-        }
-
-        return task_queue;
-    }
-
-    // 线程计算任务
-    std::shared_ptr<PixelResult> job_bee(const PixelTask &task) {
+    /* 渲染一个像素 */
+    static inline std::shared_ptr<RenderPixelResult> job_render_one_pixel(const RenderPixelTask &task) {
         std::vector<std::deque<PathNode>> path_list;
         for (int i = 0; i < _spp; ++i) {
             path_list.push_back(cast_ray(task.ray));
         }
-        return std::shared_ptr<PixelResult>(new PixelResult{task.screen_x, task.screen_y, std::move(path_list)});
+        return std::shared_ptr<RenderPixelResult>(new RenderPixelResult{
+                task.col, task.row,
+                std::move(path_list)});
     }
 
-    // 数据处理函数
-    // todo 把这个改成引用类型的
-    void job_ant(const std::shared_ptr<PixelResult> &result) {
-        assert(result->screen_y < _frame_buffer.size());
-        assert(result->screen_x < _frame_buffer[0].size());
-        assert(result->path_list.size() == _spp);
+    /* 对每个像素的渲染结果进行后处理 */
+    static inline void process_render_result(const std::shared_ptr<RenderPixelResult> &res) {
+        assert(res->path_list.size() == _spp);
 
-        // 将结果写入 framebuffer 中
+        /* 得到最终的 radiance */
         Eigen::Vector3f radiance{0.f, 0.f, 0.f};
-        for (auto &path : result->path_list) {
-            assert(path.size() > 0);        // 一定有路径信息的
+        for (auto &path : res->path_list) {
             radiance += path[0].Lo / _spp;
         }
-        _frame_buffer[result->screen_y][result->screen_x] = gamma_correct(radiance);
+
+        /* 将结果写入 framebuffer */
+        framebuffer[res->row * _scene->screen_width() + res->col] = gamma_correct(radiance);
     }
 
-    // 渲染整个场景
-    void render_single_thread(int spp) {
-        assert(spp > 0);
-        this->_spp = spp;
-
-        std::deque<PixelTask> tasks = prepare_tasks();
-        std::vector<std::shared_ptr<PixelResult>> results;
-
-        // bee 过程
-        for (auto &task: tasks) {
-            results.push_back(job_bee(task));
+    /* 将一个像素对应的多个光线路径写入数据库 */
+    static inline void insert_pixel_ray(sqlite3 *db, const RenderPixelResult &res) {
+        for (auto &path : res.path_list) {
+            PathSerialize::write_to_sqlite(db, res.row, res.col, path);
         }
-
-        // ant 过程
-        for (auto &result : results) {
-            job_ant(result);
-        }
-
-        // 写入文件
-        write_to_file(_frame_buffer, RT_RES);
     }
 
+    /* 使用单线程来渲染场景 */
+    static void render_single_thread(const std::string &db_path);
 
-    /* 多线程渲染 */
-    void render(int spp) {
-        assert(spp > 0);
-        this->_spp = spp;
+    /**
+     * 使用多线程来渲染场景
+     * @param worker_buffer_size worker 缓存的大小，缓存越小，加锁越频繁
+     * @param worker_sleep_ms 如果任务列表空了，worker 就会 sleep，该参数可以设置 sleep 的时间
+     * @param master_process_interval 主线程处理结果的时间间隔，时间越小，加锁越频繁
+     */
+    static void render_multi_thread(const std::string &db_path, int worker_cnt, int worker_buffer_size,
+                                    int worker_sleep_ms, int master_process_interval);
 
-        /* 任务队列 */
-        std::deque<PixelTask> tasks = prepare_tasks();
+    /* 将 framebuffer 写入 ppm 文件中 */
+    static void write_to_file(const std::vector<PixelType> &buffer, const char *file_path,
+                              int width, int height);
 
-        auto bee_job = [this](const PixelTask &task) { return this->job_bee(task); };
-        auto ant_job = [this](const std::shared_ptr<PixelResult> &result) { this->job_ant(result); };
-        Giraffe<PixelTask, std::shared_ptr<PixelResult>> giraffe(4, 400, 400, 200,
-                                                                 bee_job, ant_job, tasks);
+private:
+    /* 根据场景和渲染参数生成渲染任务 */
+    static std::vector<RenderPixelTask> _prepare_render_task(const std::shared_ptr<Scene> &scene);
 
-        giraffe.run();
+    /* 向场景投射一根光线，得到路径信息 */
+    static std::deque<PathNode> cast_ray(const Ray &ray);
 
-        // 写入文件
-        write_to_file(_frame_buffer, RT_RES);
-    }
+    /**
+     * 向物体投射出一根光线，递归地得到路径信息
+     * @param inter 与该物体的交点
+     * @param [out]path 将结果写入该参数
+     * @note 需要保证该光线和物体相交，且物体不是发光的
+     */
+    static void cast_ray_recursive(const Ray &ray, const Intersection &inter, std::deque<PathNode> &path);
 
-
-    // 投射一根光线，计算路径信息
-    std::deque<PathNode> cast_ray(const Ray &ray) {
-        Intersection inter = _scene->intersect(ray);
-
-        // 没有发生相交
-        if (!inter.happened()) {
-            PathNode node;
-            node.Lo = Eigen::Vector3f(0.f, 0.f, 0.f);
-            node.wo = -ray.direction();
-            node.inter = inter;
-            return {std::move(node)};
-        }
-
-        // 与发光体相交
-        if (inter.obj()->material().is_emission()) {
-            PathNode node;
-            node.Lo = inter.obj()->material().emission();
-            node.wo = -ray.direction();
-            node.inter = inter;
-            return {std::move(node)};
-        }
-
-        // 与物体相交
-        std::deque<PathNode> path;
-        cast_ray_obj(ray, inter, path);
-        return path;
-    }
-
-    // 投射出一根光线，递归地计算 Radiance
-    void cast_ray_obj(const Ray &ray, const Intersection &inter, std::deque<PathNode> &path);
-
-    // 将以 1 为参考的 Radiance 值进行 Gamma 矫正，并转换为 [0, 255] 的颜色值
-    static inline std::array<unsigned char, 3> gamma_correct(const Eigen::Vector3f &radiance) {
-        unsigned char x = (unsigned char) (255 * std::pow(clamp(0.f, 1.f, radiance.x()), 0.6f));
-        unsigned char y = (unsigned char) (255 * std::pow(clamp(0.f, 1.f, radiance.y()), 0.6f));
-        unsigned char z = (unsigned char) (255 * std::pow(clamp(0.f, 1.f, radiance.z()), 0.6f));
-
+    /* 将 [0, 1] 范围的 Radiance 值进行 Gamma 矫正，并转换为 [0, 255] 的颜色值 */
+    static inline PixelType gamma_correct(const Eigen::Vector3f &radiance) {
+        unsigned char x = (unsigned char) (255 * std::pow(std::clamp(radiance.x(), 0.f, 1.f), 0.6f));
+        unsigned char y = (unsigned char) (255 * std::pow(std::clamp(radiance.y(), 0.f, 1.f), 0.6f));
+        unsigned char z = (unsigned char) (255 * std::pow(std::clamp(radiance.z(), 0.f, 1.f), 0.6f));
         return {x, y, z};
     }
 
-
-    /**
-     * 将 framebuffer 写入 ppm 文件中
-     * @param buffer
-     * @param file_path
-     */
-    static void
-    write_to_file(const std::vector<std::vector<std::array<unsigned char, 3>>> &buffer, const char *file_path) {
-        unsigned height = buffer.size();
-        unsigned width = buffer[0].size();
-        assert(height > 0 && width > 0);
-
-        FILE *fp = fopen(file_path, "wb");
-        fprintf(fp, "P6\n%d %d\n255\n", width, height);
-
-        for (unsigned i = 0; i < height; ++i) {
-            for (unsigned j = 0; j < width; ++j) {
-                fwrite(&buffer[i][j][0], sizeof(unsigned char), 3, fp);
-            }
-        }
-        fclose(fp);
-    }
-
-private:
-    /**
-     * 俄罗斯轮盘赌的概率
-     * 次数期望的计算公式为：RR / (1 - RR) ^2
-     * 当 RR = 0.8 时，期望弹射 20 次
-     */
-    const float RussianRoulette = 0.8f;
-    int _spp = 16;
-
-    std::shared_ptr<Scene> _scene;
-
-    // 屏幕左上角是原点
-    std::vector<std::vector<std::array<unsigned char, 3>>> _frame_buffer;
+    static inline const float RussianRoulette = 0.8f; /* 俄罗斯轮盘赌的概率 */
+    static inline int _spp = 16;                      /* 每个像素投射多少根光线 */
+    static inline std::shared_ptr<Scene> _scene;      /* 需要渲染的场景 */
 };
 
 #endif //RENDER_DEBUG_RT_RENDER_H
