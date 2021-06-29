@@ -3,20 +3,19 @@
 #endif
 
 #include <fmt/format.h>
-#include <spdlog/spdlog.h>
 
 #include <catch2/catch.hpp>
 #include <string>
 
-#include "../triangle.h"
-#include "../utils.h"
+#include "triangle.h"
+#include "utils.h"
 #include "config.h"
 #define private public
-#include "../rt_render.h"
+#include "rt_render.h"
 #undef private
 
-// 测试生成的光线是否正确
-TEST_CASE("task generate 测试生成的任务是否正确")
+
+TEST_CASE("测试生成的任务是否正确")
 {
     auto scene = std::make_shared<Scene>(2,
                                          2,
@@ -28,7 +27,7 @@ TEST_CASE("task generate 测试生成的任务是否正确")
 
     REQUIRE(tasks.size() == 4);
 
-    float value = std::tan(45.f / 2.f / 180.f * M_PI) / 2.f;
+    float value = (float)std::tan(45.f / 2.f / 180.f * M_PI) / 2.f;
 
     SECTION("所有的射线的原点")
     {
@@ -71,11 +70,11 @@ TEST_CASE("task generate 测试生成的任务是否正确")
     }
 }
 
-TEST_CASE("write to file 文件写入")
+TEST_CASE("写入 ppm 文件")
 {
     // 构造颜色数据：从左到右红色增加，从上到下蓝色增加
     std::vector<std::array<unsigned char, 3>> framebuffer;
-    int height = 200, width = 200;
+    unsigned char height = 200, width = 200;
     for (unsigned char row = 0; row < height; ++row)
     {
         for (unsigned char col = 0; col < width; ++col)
@@ -88,25 +87,25 @@ TEST_CASE("write to file 文件写入")
     RTRender::write_to_file(framebuffer, TEST_RT_RES, width, height);
 }
 
-TEST_CASE("single thread 单线程小规模的计算任务")
+TEST_CASE("单线程小规模的计算任务")
 {
     // 导入模型
     auto floor = MeshTriangle::mesh_load(PATH_CORNELL_FLOOR)[0];
-    floor->material().set_diffuse(color_cornel_white);
+    floor->mat()->set_diffuse(color_cornel_white);
     auto left = MeshTriangle::mesh_load(PATH_CORNELL_LEFT)[0];
-    left->material().set_diffuse(color_cornel_red);
+    left->mat()->set_diffuse(color_cornel_red);
     auto right = MeshTriangle::mesh_load(PATH_CORNELL_RIGHT)[0];
-    right->material().set_diffuse(color_cornel_green);
+    right->mat()->set_diffuse(color_cornel_green);
     auto tall_box = MeshTriangle::mesh_load(PATH_CORNELL_TALLBOX)[0];
-    tall_box->material().set_diffuse(color_cornel_white);
+    tall_box->mat()->set_diffuse(color_cornel_white);
     auto shot_box = MeshTriangle::mesh_load(PATH_CORNELL_SHORTBOX)[0];
-    shot_box->material().set_diffuse(color_cornel_white);
+    shot_box->mat()->set_diffuse(color_cornel_white);
     auto light = MeshTriangle::mesh_load(PATH_CORNELL_LIGHT)[0];
-    light->material().set_emission(color_cornel_light);
+    light->mat()->set_emission(color_cornel_light);
 
     // 构建场景
-    auto scene = std::make_shared<Scene>(64,
-                                         64,
+    auto scene = std::make_shared<Scene>(20,
+                                         20,
                                          40.f,
                                          Eigen::Vector3f{0.f, 0.f, 1.f},
                                          Eigen::Vector3f{278.f, 273.f, -800.f});
@@ -120,7 +119,7 @@ TEST_CASE("single thread 单线程小规模的计算任务")
 
     // 进行渲染
     RTRender::init(scene, 1);
-    RTRender::render_single_thread();
+    RTRender::render_single_thread(DB_PATH);
     RTRender::write_to_file(RTRender::framebuffer,
                             RT_RES,
                             scene->screen_width(),

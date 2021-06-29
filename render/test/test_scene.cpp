@@ -13,7 +13,7 @@
 #include "../triangle.h"
 
 
-TEST_CASE("scene build 构建场景") {
+TEST_CASE("构建场景") {
 
     std::vector<std::string> file_path_list;
     for (auto name : {PATH_CORNELL_FLOOR,
@@ -42,15 +42,15 @@ TEST_CASE("scene build 构建场景") {
     auto right = MeshTriangle::mesh_load(PATH_CORNELL_RIGHT)[0];
     auto shortbox = MeshTriangle::mesh_load(PATH_CORNELL_SHORTBOX)[0];
     auto tallbox = MeshTriangle::mesh_load(PATH_CORNELL_TALLBOX)[0];
-    floor->material().set_diffuse(color_cornel_white);
-    shortbox->material().set_diffuse(color_cornel_white);
-    tallbox->material().set_diffuse(color_cornel_white);
-    left->material().set_diffuse(color_cornel_red);
-    right->material().set_diffuse(color_cornel_green);
+    floor->mat()->set_diffuse(color_cornel_white);
+    shortbox->mat()->set_diffuse(color_cornel_white);
+    tallbox->mat()->set_diffuse(color_cornel_white);
+    left->mat()->set_diffuse(color_cornel_red);
+    right->mat()->set_diffuse(color_cornel_green);
 
     // 发光的物体
     auto light = MeshTriangle::mesh_load(PATH_CORNELL_LIGHT)[0];
-    light->material().set_emission(color_cornel_light);
+    light->mat()->set_emission(color_cornel_light);
 
     // 构建场景
     Scene scene(800, 600, 45.f, {0.f, 0.f, 1.f}, {0.f ,0.f, 0.f});

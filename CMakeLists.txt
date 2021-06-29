@@ -11,7 +11,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 
 ############################################################
-# 头文件和链接目录
+# 系统的头文件和链接目录
 ############################################################
 include_directories(/opt/homebrew/include)
 link_directories(/opt/homebrew/lib)
@@ -29,10 +29,13 @@ set(PATH_CORNELL_LIGHT "${PATH_CORNELL}/light.obj")
 set(PATH_CORNELL_RIGHT "${PATH_CORNELL}/right.obj")
 set(PATH_CORNELL_SHORTBOX "${PATH_CORNELL}/shortbox.obj")
 set(PATH_CORNELL_TALLBOX "${PATH_CORNELL}/tallbox.obj")
+
 # 存放渲染信息的数据库
 set(DB_PATH "${CMAKE_SOURCE_DIR}/render.sqlite3")
+
 # 渲染结果文件
 set(RT_RES "${CMAKE_SOURCE_DIR}/rt.ppm")
+
 # 注入头文件
 configure_file(${CMAKE_SOURCE_DIR}/config.h.in ${CMAKE_BINARY_DIR}/config.h)
 include_directories(${CMAKE_BINARY_DIR})
@@ -53,5 +56,11 @@ find_package(assimp REQUIRED)
 # 子项目
 ############################################################
 add_subdirectory(render)
-add_subdirectory(debugger)
 add_subdirectory(demo)
+
+
+############################################################
+# cornel-box 的渲染
+############################################################
+add_executable(cornel-box main.cpp)
+target_link_libraries(cornel-box PRIVATE render)

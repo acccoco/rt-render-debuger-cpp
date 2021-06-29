@@ -1,6 +1,8 @@
 #include "scene.h"
-#include "utils.h"
+
 #include <fmt/format.h>
+
+#include "utils.h"
 
 
 std::tuple<float, Intersection> Scene::sample_light() const {
@@ -34,7 +36,8 @@ std::tuple<float, Intersection> Scene::sample_light() const {
     // 如果找到了：去物体内部采样
     return {
             1.f / emit_obj->area(),
-            Object::sample_obj(emit_obj, area_threshold_obj)
+            emit_obj->obj_sample(area_threshold_obj)
+            // Object::sample_obj(emit_obj, area_threshold_obj)
     };
 }
 
@@ -43,8 +46,26 @@ void Scene::obj_add(const std::shared_ptr<Object> &obj) {
 
     this->_objs.push_back(obj);
 
-    if (obj->material().is_emission()) {
+    if (obj->mat()->is_emission()) {
         this->_emit.objs.push_back(obj);
         this->_emit.total_area += obj->area();
     }
+}
+
+
+void Scene::initInverseViewMatrix() {
+    // 防止死锁
+    assert(std::abs(this->_camera.look_at.get().y()) < 0.9f);
+
+    Eigen::Vector3f right = this->_camera.look_at.get().cross(Eigen::Vector3f(0.f, 1.f, 0.f));
+    Eigen::Vector3f up = right.cross(this->_camera.look_at.get());
+
+    auto &i = right;
+    auto &j = up;
+    auto k = -this->_camera.look_at.get();
+
+    this->_camera.view_matrix_inverse << i.x(), j.x(), k.x(), this->_camera.pos.x(),
+            i.y(), j.y(), k.y(), this->_camera.pos.y(),
+            i.z(), j.z(), k.z(), this->_camera.pos.z(),
+            0, 0, 0, 1;
 }

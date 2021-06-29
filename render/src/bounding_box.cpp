@@ -2,20 +2,14 @@
 #include "utils.h"
 
 
-ExtensionDir BoundingBox::max_extension() const {
+ExtensionDir BoundingBox::maxExtension() const {
     auto d = diagonal();
     if (d.x() > d.y() && d.x() > d.z()) return ExtensionDir::X;
     else if (d.y() > d.z()) return ExtensionDir::Y;
     else return ExtensionDir::Z;
 }
 
-Eigen::Vector3f BoundingBox::diagonal() const {
-    return p_max - p_min;
-}
 
-Eigen::Vector3f BoundingBox::center() const {
-    return 0.5f * p_min + 0.5f * p_max;
-}
 
 inline bool intersect_partial(float &t_min, float &t_max,
                               const float origin, const float direction,
@@ -36,7 +30,7 @@ inline bool intersect_partial(float &t_min, float &t_max,
     return t_max > 0.f;
 }
 
-bool BoundingBox::is_intersect(const Ray &ray) const {
+bool BoundingBox::isIntersect(const Ray &ray) const {
     float t_min_x, t_max_x, t_min_y, t_max_y, t_min_z, t_max_z;
     if (!intersect_partial(t_min_x, t_max_x, ray.origin().x(), ray.direction().get().x(), p_min.x(), p_max.x()))
         return false;
@@ -51,8 +45,8 @@ bool BoundingBox::is_intersect(const Ray &ray) const {
 }
 
 
-// 找到两个点所有维度的最大值，生成一个新的点
-inline Eigen::Vector3f max_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
+/* 找到两个点所有维度的最大值，生成一个新的点 */
+inline Eigen::Vector3f maxP(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
     return Eigen::Vector3f{
             std::max(p1.x(), p2.x()),
             std::max(p1.y(), p2.y()),
@@ -61,7 +55,7 @@ inline Eigen::Vector3f max_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p
 }
 
 // 找到两个点所有维度的最小值，生成一个新的点
-inline Eigen::Vector3f min_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
+inline Eigen::Vector3f minP(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
     return Eigen::Vector3f{
             std::min(p1.x(), p2.x()),
             std::min(p1.y(), p2.y()),
@@ -69,10 +63,10 @@ inline Eigen::Vector3f min_p(const Eigen::Vector3f &p1, const Eigen::Vector3f &p
     };
 }
 
-BoundingBox BoundingBox::union_(const BoundingBox &box1, const BoundingBox &box2) {
+BoundingBox BoundingBox::unionOp(const BoundingBox &box1, const BoundingBox &box2) {
     BoundingBox box;
-    box.p_max = max_p(box1.p_max, box2.p_max);
-    box.p_min = min_p(box1.p_min, box2.p_min);
+    box.p_max = maxP(box1.p_max, box2.p_max);
+    box.p_min = minP(box1.p_min, box2.p_min);
     return box;
 }
 
@@ -85,9 +79,9 @@ BoundingBox::BoundingBox() {
 }
 
 
-void BoundingBox::union_(const Eigen::Vector3f &p) {
-    p_max = max_p(p_max, p);
-    p_min = min_p(p_min, p);
+void BoundingBox::unionOp(const Eigen::Vector3f &p) {
+    p_max = maxP(p_max, p);
+    p_min = minP(p_min, p);
 }
 
 std::ostream &operator<<(std::ostream &os, const BoundingBox &box) {
@@ -97,13 +91,13 @@ std::ostream &operator<<(std::ostream &os, const BoundingBox &box) {
 }
 
 BoundingBox::BoundingBox(const Eigen::Vector3f &p1, const Eigen::Vector3f &p2) {
-    p_max = max_p(p1, p2);
-    p_min = min_p(p1, p2);
+    p_max = maxP(p1, p2);
+    p_min = minP(p1, p2);
 }
 
-void BoundingBox::union_(const BoundingBox &box) {
-    p_max = max_p(p_max, box.p_max);
-    p_min = min_p(p_min, box.p_min);
+void BoundingBox::unionOp(const BoundingBox &box) {
+    p_max = maxP(p_max, box.p_max);
+    p_min = minP(p_min, box.p_min);
 }
 
 bool BoundingBox::contain(const Eigen::Vector3f &point) const {

@@ -18,29 +18,29 @@
 // =============================================================================
 
 
-TEST_CASE("insert one node 插入一个路径节点") {
+TEST_CASE("插入一条数据到 node 表中") {
     DB::init_db(DB_PATH);
 
     PathNode node;
-    sqlite3_exec(DB::db, "DELETE FROM path_node", nullptr, nullptr, nullptr);
-    NodeSerialize::write_to_sqlite(DB::db, node, 12);
+    NodeSerialize::deleteTable(DB::db);
+    NodeSerialize::insertNode(DB::db, node, 12);
 
     DB::close_db();
 }
 
 size_t RECORD_CNT = 20000;
 
-TEST_CASE("批量插入-无事务-计入构造str的时间") {
+TEST_CASE("批量插入到 node 表中 -无事务-计入构造str的时间") {
     DB::init_db(DB_PATH);
     PathNode node;
 
     /* 删除原来的数据 */
-    sqlite3_exec(DB::db, "DELETE FROM path_node", nullptr, nullptr, nullptr);
+    NodeSerialize::deleteTable(DB::db);
 
     /* 开始批量插入 */
     auto start_time = std::chrono::system_clock::now();
     for (int i = 0; i < RECORD_CNT; ++i) {
-        NodeSerialize::write_to_sqlite(DB::db, node, i);
+        NodeSerialize::insertNode(DB::db, node, i);
     }
     auto end_time = std::chrono::system_clock::now();
 
@@ -51,18 +51,18 @@ TEST_CASE("批量插入-无事务-计入构造str的时间") {
     fmt::print("批量插入-无事务-计入构造str的时间: {}ms", delta_time.count());
 }
 
-TEST_CASE("批量插入-使用事务-计入构造str的时间") {
+TEST_CASE("批量插入到 node 表中 -使用事务-计入构造str的时间") {
     DB::init_db(DB_PATH);
     PathNode node;
 
     /* 删除原来的数据 */
-    sqlite3_exec(DB::db, "DELETE FROM path_node", nullptr, nullptr, nullptr);
+    NodeSerialize::deleteTable(DB::db);
 
     /* 开启事务并批量写入 */
     DB::transaction_begin();
     auto start_time = std::chrono::system_clock::now();
     for (int i = 0; i < RECORD_CNT; ++i) {
-        NodeSerialize::write_to_sqlite(DB::db, node, i);
+        NodeSerialize::insertNode(DB::db, node, i);
     }
     auto end_time = std::chrono::system_clock::now();
     DB::transaction_commit();
@@ -75,32 +75,32 @@ TEST_CASE("批量插入-使用事务-计入构造str的时间") {
 }
 
 
-TEST_CASE ("写入一条光路") {
+TEST_CASE ("写入一条记录到 path 表中") {
     /* 连接数据库 */
     DB::init_db(DB_PATH);
 
     /* 清除旧数据 */
-    sqlite3_exec(DB::db, "DELETE FROM path_node", nullptr, nullptr, nullptr);
-    sqlite3_exec(DB::db, "DELETE FROM path", nullptr, nullptr, nullptr);
+    NodeSerialize::deleteTable(DB::db);
+    PathSerialize::deleteTable(DB::db);
 
     /* 构造光路信息 */
     std::deque<PathNode> path(10, PathNode());
 
     /* 写入 */
-    PathSerialize::write_to_sqlite(DB::db, 40, 50, path);
+    PathSerialize::insertPath(DB::db, 40, 50, path);
 
     /* 关闭数据库 */
     DB::close_db();
 }
 
 
-TEST_CASE("写入一个像素对应的多条光路-使用事务") {
+TEST_CASE("写入一个像素对应的多条光路（包括 node 和 path）-使用事务") {
     /* 连接数据库 */
     DB::init_db(DB_PATH);
 
     /* 清除旧数据 */
-    sqlite3_exec(DB::db, "DELETE FROM path_node", nullptr, nullptr, nullptr);
-    sqlite3_exec(DB::db, "DELETE FROM path", nullptr, nullptr, nullptr);
+    NodeSerialize::deleteTable(DB::db);
+    PathSerialize::deleteTable(DB::db);
 
     /* 构造光路信息 */
     RTRender::RenderPixelResult res;
@@ -114,7 +114,7 @@ TEST_CASE("写入一个像素对应的多条光路-使用事务") {
     /* 写入 */
     DB::transaction_begin();
     for (auto &path : res.path_list) {
-        PathSerialize::write_to_sqlite(DB::db, res.row, res.col, path);
+        PathSerialize::insertPath(DB::db, res.row, res.col, path);
     }
     DB::transaction_commit();
 

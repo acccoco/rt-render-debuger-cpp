@@ -7,16 +7,15 @@
 #include <catch2/catch.hpp>
 
 #include "config.h"
-#include "../utils.h"
-#include "../triangle.h"
+#include "triangle.h"
 
 
 // =========================================================
 // 测试基于 Assimp 的模型导入功能是否正常
 // =========================================================
-TEST_CASE("load obj file")
+TEST_CASE("使用 Assimp 导入模型")
 {
-    SECTION("cornellbox")
+    SECTION("导入 cornel-box 的模型")
     {
 
         std::vector<std::string> file_path_list;
@@ -39,7 +38,7 @@ TEST_CASE("load obj file")
             }
         }
 
-        SECTION("open with Assimp")
+        SECTION("使用 Assimp 来打开模型")
         {
             for (auto &file_path : file_path_list) {
                 auto meshes = MeshTriangle::mesh_load(file_path);

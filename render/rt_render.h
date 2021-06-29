@@ -32,7 +32,7 @@ class RTRender {
 public:
     /* 渲染一个像素的任务 */
     struct RenderPixelTask {
-        int col, row;
+        int col{}, row{};
         Ray ray;
     };
 
@@ -44,9 +44,11 @@ public:
 
     using PixelType = std::array<unsigned char, 3>;
 
-    static inline std::vector<PixelType> framebuffer; /* 渲染场景得到的帧缓冲 */
+    /* 光线在物体上反射时，为了防止再与自身相交，让反射点沿法线偏离一定的距离 */
+    static inline const float OFFSET = 0.01f;
+    static inline const float RussianRoulette = 0.8f;   /* 俄罗斯轮盘赌的概率 */
 
-    /* 使用 scene 初始化渲染器，准备渲染 */
+    /* 渲染前的准备步骤：指定需要渲染的场景，以及 spp */
     static void init(const std::shared_ptr<Scene> &scene, int spp) {
         /* 创建 framebuffer，设置背景色为黑色 */
         framebuffer = std::vector<PixelType>(scene->screen_width() * scene->screen_width(),
@@ -55,39 +57,11 @@ public:
         _spp = spp;
     }
 
-    /* 渲染一个像素 */
-    static inline std::shared_ptr<RenderPixelResult> job_render_one_pixel(const RenderPixelTask &task) {
-        std::vector<std::deque<PathNode>> path_list;
-        for (int i = 0; i < _spp; ++i) {
-            path_list.push_back(cast_ray(task.ray));
-        }
-        return std::shared_ptr<RenderPixelResult>(new RenderPixelResult{
-                task.col, task.row,
-                std::move(path_list)});
-    }
-
-    /* 对每个像素的渲染结果进行后处理 */
-    static inline void process_render_result(const std::shared_ptr<RenderPixelResult> &res) {
-        assert(res->path_list.size() == _spp);
-
-        /* 得到最终的 radiance */
-        Eigen::Vector3f radiance{0.f, 0.f, 0.f};
-        for (auto &path : res->path_list) {
-            radiance += path[0].Lo / _spp;
-        }
-
-        /* 将结果写入 framebuffer */
-        framebuffer[res->row * _scene->screen_width() + res->col] = gamma_correct(radiance);
-    }
-
-    /* 将一个像素对应的多个光线路径写入数据库 */
-    static inline void insert_pixel_ray(sqlite3 *db, const RenderPixelResult &res) {
-        for (auto &path : res.path_list) {
-            PathSerialize::write_to_sqlite(db, res.row, res.col, path);
-        }
-    }
-
-    /* 使用单线程来渲染场景 */
+    /**
+     * 使用单线程来渲染场景
+     * 会将详细的路径信息写入数据库，将像素信息写入 framebuffe 里面
+     * @param db_path 存放光路信息的数据库
+     */
     static void render_single_thread(const std::string &db_path);
 
     /**
@@ -104,7 +78,21 @@ public:
                               int width, int height);
 
 private:
-    /* 根据场景和渲染参数生成渲染任务 */
+
+    /* task：渲染一个像素 */
+    static std::shared_ptr<RenderPixelResult> jobRenderOnePixel(const RenderPixelTask &task);
+
+    /* 使用渲染得到的结果来绘制 framebuffer */
+    static void drawFrameBuffer(const std::shared_ptr<RenderPixelResult> &res);
+
+    /* 将一个像素对应的多个光线路径写入数据库 */
+    static inline void insert_pixel_ray(sqlite3 *db, const RenderPixelResult &res) {
+        for (auto &path : res.path_list) {
+            PathSerialize::insertPath(db, res.row, res.col, path);
+        }
+    }
+
+    /* 根据场景和渲染参数生成的渲染任务 */
     static std::vector<RenderPixelTask> _prepare_render_task(const std::shared_ptr<Scene> &scene);
 
     /* 向场景投射一根光线，得到路径信息 */
@@ -126,9 +114,14 @@ private:
         return {x, y, z};
     }
 
-    static inline const float RussianRoulette = 0.8f; /* 俄罗斯轮盘赌的概率 */
+
+public:
+    static inline std::vector<PixelType> framebuffer; /* 渲染场景得到的帧缓冲 */
+
+private:
     static inline int _spp = 16;                      /* 每个像素投射多少根光线 */
     static inline std::shared_ptr<Scene> _scene;      /* 需要渲染的场景 */
 };
+
 
 #endif //RENDER_DEBUG_RT_RENDER_H

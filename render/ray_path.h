@@ -1,7 +1,3 @@
-//
-// Created by 漆正杰 on 2021/6/21.
-//
-
 #ifndef RENDER_DEBUG_RAY_PATH_H
 #define RENDER_DEBUG_RAY_PATH_H
 
@@ -11,7 +7,9 @@
 #include "intersection.h"
 
 
-// 路径追踪的一个节点，路径从摄像机出发
+/**
+ * 路径追踪的一个节点，路径从摄像机出发
+ */
 struct PathNode {
 
     // 设置和光源的相交信息
@@ -38,7 +36,7 @@ struct PathNode {
     // =========================================================================
 
     // 出射光线的信息
-    Eigen::Vector3f Lo{0.f, 0.f, 0.f};          /* 出射光线的辐照度 */
+    Eigen::Vector3f Lo{0.f, 0.f, 0.f};          /* 出射光线的 Radiance */
     Direction wo = Direction::zero();                       /* 出射光线的方向 */
     Eigen::Vector3f pos_out{0.f, 0.f, 0.f};     /* 出射光线的端点 */
     Intersection inter = Intersection::no_intersect();      /* 是否和物体有交点 */

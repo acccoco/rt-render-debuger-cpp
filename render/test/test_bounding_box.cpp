@@ -1,14 +1,14 @@
 #define CATCH_CONFIG_MAIN
 
-#include "../bounding_box.h"
+#include "bounding_box.h"
+
 #include <string>
-#include <iostream>
-#include <fmt/format.h>
+
 #include <catch2/catch.hpp>
 
-TEST_CASE("constructor")
+TEST_CASE("构造函数")
 {
-    SECTION("constructor no param")
+    SECTION("无参构造函数")
     {
         BoundingBox box;
 
@@ -19,7 +19,7 @@ TEST_CASE("constructor")
         REQUIRE(box.p_max == Eigen::Vector3f(min_f, min_f, min_f));
     }
 
-    SECTION("constructor using 1 point")
+    SECTION("通过一个点来创建 AABB 包围盒")
     {
         Eigen::Vector3f p1{1.f, -1.0f, 0.f};
         BoundingBox box1(p1);
@@ -28,7 +28,7 @@ TEST_CASE("constructor")
         REQUIRE(box1.p_max == p1);
     }
 
-    SECTION("constructor using 2 point")
+    SECTION("通过两个点来创建 AABB 包围盒")
     {
         Eigen::Vector3f p1{-1.f, 2.f, 3.f};
         Eigen::Vector3f p2{1.f, -1.f, 4.f};
@@ -40,32 +40,31 @@ TEST_CASE("constructor")
     }
 }
 
-TEST_CASE("union operation")
+TEST_CASE("AABB 的与运算")
 {
     const BoundingBox box(Eigen::Vector3f(1.f, 1.f, 1.f));
 
-    SECTION("box union point")
+    SECTION("AABB 包围盒和一个点进行与运算")
     {
         BoundingBox box1 = box;
 
         Eigen::Vector3f p1{-1.f, -1.f, -1.f};
-        box1.union_(p1);
+        box1.unionOp(p1);
 
         REQUIRE(box1.p_min == Eigen::Vector3f(-1.f, -1.f, -1.f));
         REQUIRE(box1.p_max == Eigen::Vector3f(1.f, 1.f, 1.f));
     }
 
-    SECTION("box union box")
+    SECTION("AABB 包围盒之间进行与运算")
     {
         const BoundingBox &box1 = box;
 
         BoundingBox box2(Eigen::Vector3f(0.5f, 1.5f, 0.5f));
-        box2.union_(Eigen::Vector3f(-3.f, -3.f, -3.f));
+        box2.unionOp(Eigen::Vector3f(-3.f, -3.f, -3.f));
 
-        auto box3 = BoundingBox::union_(box1, box2);
+        auto box3 = BoundingBox::unionOp(box1, box2);
 
         REQUIRE(box3.p_min == Eigen::Vector3f(-3.f, -3.f, -3.f));
         REQUIRE(box3.p_max == Eigen::Vector3f(1.f, 1.5f, 1.f));
     }
 }
-

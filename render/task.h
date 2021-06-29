@@ -16,12 +16,21 @@
  * 执行任务的 worker，不断地从任务列表中取出任务，将结果写入结果列表中
  * @tparam TaskT__ 任务的类型
  * @tparam ResultT__ 结果的类型
+ * @使用方法
+ *  Worker worker();
+ *  worker.start();
+ *  worker.stop();
  */
 template<class TaskT_, class ResultT_>
 class Worker {
 public:
     typedef std::function<ResultT_(const TaskT_ &)> JobType;
 
+private:
+    const size_t BUFFER_SIZE;                       /* task buffer 和 result buffer 的容量是多大 */
+    const unsigned WAIT_SLEEP_MS;                   /* 获取不到任务时，sleep 多久 */
+
+public:
     /**
      * 初始化 workder
      * @param task_list 读取任务的列表
@@ -35,8 +44,8 @@ public:
            const JobType &job,
            size_t buffer_size, unsigned wait_sleep_ms)
 
-            : _task{task_list, task_mtx}, _result{result_list, result_mtx}, _job(job),
-              BUFFER_SIZE(buffer_size), WAIT_SLEEP_MS(wait_sleep_ms) {
+            : BUFFER_SIZE(buffer_size), WAIT_SLEEP_MS(wait_sleep_ms),
+              _task{task_list, task_mtx}, _result{result_list, result_mtx}, _job(job) {
 
         /* 为 buffer 预分配内存，以免 vector 频繁收缩内存 */
         _task_buffer.reserve(buffer_size);
@@ -59,9 +68,7 @@ private:
     void _thread_func();
 
 
-    // 成员字段
-    // =====================================================
-
+private:
     /* 总的任务列表，在多个 worker 之间共享，读取的时候需要加锁 */
     struct {
         std::vector<TaskT_> &task_list;
@@ -81,16 +88,15 @@ private:
     std::shared_ptr<std::thread> _thread{nullptr};  /* worker 内部的线程 */
     bool _should_stop = false;                      /* worker 内的线程是否应该停止运行 */
 
-    const size_t BUFFER_SIZE;                       /* task buffer 和 result buffer 的容量是多大 */
-    const unsigned WAIT_SLEEP_MS;                   /* 获取不到任务时，sleep 多久 */
 };
 
 
 template<class Task, class Result>
 void Worker<Task, Result>::_thread_func() {
-    // todo 这个可能不是线程安全的
     auto _thread_id = std::this_thread::get_id();
     unsigned thread_id = *(unsigned int *) &(_thread_id);
+
+    /* fixme：这个函数在多线程中调用，可能是不安全的 */
     spdlog::info("worker(thread id: {}) is running.", thread_id);
 
     while (!_should_stop) {     /* 通过设置这个变量，让线程结束 */

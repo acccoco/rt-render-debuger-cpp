@@ -9,8 +9,7 @@
 
 #include <catch2/catch.hpp>
 
-#include "../utils.h"
-#include "../task.h"
+#include "task.h"
 
 
 TEST_CASE("worker") {

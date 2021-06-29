@@ -1,7 +1,6 @@
 #ifndef RENDER_DEBUG_TRIANGLE_H
 #define RENDER_DEBUG_TRIANGLE_H
 
-
 #include <Eigen/Eigen>
 #include <assimp/scene.h>
 #include <assimp/Importer.hpp>
@@ -14,113 +13,62 @@
 
 class Triangle : public Object {
 public:
+    /* 通过三个顶点来创建一个三角形，并指定三角形的材质 */
     Triangle(Eigen::Vector3f v0, Eigen::Vector3f v1, Eigen::Vector3f v2, std::shared_ptr<Material> mat)
-            : _A(std::move(v0)),
-              _B(std::move(v1)),
-              _C(std::move(v2)) {
+            : _a(std::move(v0)),
+              _b(std::move(v1)),
+              _c(std::move(v2)) {
 
         this->_material = std::move(mat);
         this->init();
     }
 
-    // 根据 Assimp 的顶点来初始化三角形
+    /* 根据 Assimp 的顶点来初始化三角形 */
     Triangle(const aiVector3D &v0, const aiVector3D &v1, const aiVector3D &v2, std::shared_ptr<Material> mat) {
-        _A = Eigen::Vector3f{v0.x, v0.y, v0.z};
-        _B = Eigen::Vector3f{v1.x, v1.y, v1.z};
-        _C = Eigen::Vector3f{v2.x, v2.y, v2.z};
+        _a = Eigen::Vector3f{v0.x, v0.y, v0.z};
+        _b = Eigen::Vector3f{v1.x, v1.y, v1.z};
+        _c = Eigen::Vector3f{v2.x, v2.y, v2.z};
 
         this->_material = std::move(mat);
         this->init();
     }
 
-    // 从两个构造函数里面提取出来的公共部分
+    /* 初始化三角形，从两个构造函数中抽出的公共部分 */
     void init() {
         // 计算面法线，逆时针方向向外
-        this->_normal = (_B - _A).cross(_C - _B);
+        this->_normal = Direction((_b - _a).cross(_c - _b));
 
         // 计算包围盒
-        this->_bounding_box = BoundingBox(_A, _B);
-        this->_bounding_box.union_(_C);
+        this->_bounding_box = BoundingBox(_a, _b);
+        this->_bounding_box.unionOp(_c);
 
         // 计算面积
-        this->_area = (_B - _A).cross(_C - _A).norm() * 0.5f;
+        this->_area = (_b - _a).cross(_c - _a).norm() * 0.5f;
     }
 
+    /* 计算三角形和光线的交点 */
+    Intersection intersect(const Ray &ray) override;
 
-    // =========================================================
-    // 属性
-    // =========================================================
-    inline Eigen::Vector3f A() const {
-        return this->_A;
-    }
-
-    inline Eigen::Vector3f B() const {
-        return this->_B;
-    }
-
-    inline Eigen::Vector3f C() const {
-        return this->_C;
-    }
-
-    inline Direction normal() const {
-        return this->_normal;
-    }
-
-    inline ObjectType type_get() const override {
-        return ObjectType::Triangle;
-    }
-
-
-    // =========================================================
-    // 计算交点
-    // =========================================================
-    static Intersection intersect(const std::shared_ptr<Triangle> &obj, const Ray &ray);
-
-
-    // =========================================================
-    // 按物体采样
-    // =========================================================
-    static Intersection obj_sample(const std::shared_ptr<Triangle> &obj, float area_threshold);
-
+    /* 在物体内随机采样 */
+    Intersection obj_sample(float area_threshold) override;
 
 private:
-    Eigen::Vector3f _A, _B, _C;
-    Direction _normal;
+    Eigen::Vector3f _a, _b, _c;     /* 三角形三个顶点的坐标 */
+    Direction _normal;              /* 三角形的面法线 */
+
+public :
+    [[nodiscard]] inline Eigen::Vector3f A() const { return _a; }
+
+    [[nodiscard]] inline Eigen::Vector3f B() const { return _b; }
+
+    [[nodiscard]] inline Eigen::Vector3f C() const { return _c; }
+
+    [[nodiscard]] inline Direction normal() const { return _normal; }
 };
 
 
 class MeshTriangle : public Object {
 public:
-
-    MeshTriangle(const std::shared_ptr<Material> &mat, const std::shared_ptr<BVH> root)
-            : Object(root->bounding_box(), root->area(), mat),
-              bvh(root) {}
-
-    // =========================================================
-    // 属性
-    // =========================================================
-    inline ObjectType type_get() const override {
-        return ObjectType::MeshTriangle;
-    }
-
-
-    // =========================================================
-    // 按物体采样
-    // =========================================================
-    static inline Intersection obj_sample(const std::shared_ptr<MeshTriangle> &obj, float area_threshold) {
-        assert(area_threshold <= obj->_area);
-        return obj->bvh->sample_obj(area_threshold);
-    }
-
-
-    // =========================================================
-    // 计算交点
-    // =========================================================
-    static inline Intersection intersec(const std::shared_ptr<MeshTriangle> &obj, const Ray &ray) {
-        return obj->bvh->intersect(ray);
-    }
-
-
     // =========================================================
     // 根据 Assimp 生成模型
     // =========================================================
@@ -132,9 +80,26 @@ public:
     static std::shared_ptr<MeshTriangle> process_aimesh(const aiMesh &mesh);
 
 
-private:
+    /* 构造函数 */
+    MeshTriangle(const std::shared_ptr<Material> &mat, const std::shared_ptr<BVH> &root)
+            : Object(root->bounding_box(), root->area(), mat),
+              bvh(root) {}
 
-    std::shared_ptr<BVH> bvh;
+    /* 在模型内随机采样，area_threshold 是参考的面积阈值 */
+    inline Intersection obj_sample(float area_threshold) override {
+        assert(area_threshold <= this->_area);
+        return this->bvh->sample_obj(area_threshold);
+    }
+
+    /* 计算模型和射线的交点 */
+    inline Intersection intersect(const Ray &ray) override {
+        return this->bvh->intersect(ray);
+    }
+
+
+private:
+    std::shared_ptr<BVH> bvh;           /* 三角形模型由众多三角形组成，以 BVH 建立加速架构 */
+
 };
 
 

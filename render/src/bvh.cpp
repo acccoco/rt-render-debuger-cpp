@@ -52,7 +52,7 @@ find_kth_obj(const std::vector<std::shared_ptr<Object>> &objs, unsigned int k, E
         less.insert(less.end(), greater_less.begin(), greater_less.end());
         return {less, greater_flag, greater_greater};
     }
-};
+}
 
 
 std::shared_ptr<BVH> BVH::build(const std::vector<std::shared_ptr<Object>> &objs) {
@@ -67,11 +67,11 @@ std::shared_ptr<BVH> BVH::build(const std::vector<std::shared_ptr<Object>> &objs
     // 计算包围盒
     BoundingBox box;
     for (const auto &obj : objs) {
-        box.union_(obj->bounding_box());
+        box.unionOp(obj->bounding_box());
     }
 
     // 找到位于中间靠前的 object，可以确保 [less + k_th] 和 greater 的元素数量都 >= 1
-    auto max_ext_dir = box.max_extension();
+    auto max_ext_dir = box.maxExtension();
     auto[less, k_th, greater] = find_kth_obj(objs, (obj_size - 1) / 2, max_ext_dir);
     less.push_back(k_th);
     auto lchild = build(less);
@@ -85,14 +85,15 @@ std::shared_ptr<BVH> BVH::build(const std::vector<std::shared_ptr<Object>> &objs
 Intersection BVH::intersect(const Ray &ray) const {
 
     // 没有发生相交
-    if (!this->bounding_box().is_intersect(ray)) {
+    if (!this->bounding_box().isIntersect(ray)) {
         return Intersection::no_intersect();
     }
 
     // 当前节点是叶子节点
     if (this->_object) {
         assert(!this->_lchild && !this->_rchild);
-        return Intersection::intersect(this->_object, ray);
+        // return Intersection::intersect(this->_object, ray);
+        return _object->intersect(ray);
     }
 
     // 判断子节点是否发生相交
@@ -100,6 +101,13 @@ Intersection BVH::intersect(const Ray &ray) const {
     auto l_inter = _lchild->intersect(ray);
     auto r_inter = _rchild->intersect(ray);
 
+    /**
+     * 分为 4 种情况讨论：
+     *  1. 只有左子有交点：返回左子的交点
+     *  2. 只有右子有交点，同上
+     *  3. 左右子都有交点，返回距 origin 近的交点
+     *  4. 左右子都没有交点，返回不相交
+     */
     int res = (l_inter.happened() ? 1 : 0) + (r_inter.happened() ? 2 : 0);
     switch (res) {
         case 1:     // 只有左子相交
@@ -118,7 +126,8 @@ Intersection BVH::sample_obj(float area_threshold) {
 
     // 当前节点是叶子节点
     if (this->_object) {
-        return Object::sample_obj(this->_object, area_threshold);
+        return _object->obj_sample(area_threshold);
+        // return Object::sample_obj(this->_object, area_threshold);
     }
 
     // 去左右子树找

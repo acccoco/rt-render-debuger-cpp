@@ -5,42 +5,50 @@
 
 #include "utils.h"
 
-Intersection Triangle::intersect(const std::shared_ptr<Triangle> &obj, const Ray &ray) {
 
-    // 使用 Moller Trumbore 算法来计算
-    auto e1 = obj->B() - obj->A();
-    auto e2 = obj->C() - obj->A();
-    auto s = ray.origin() - obj->A();
-    auto s1 = ray.direction().get().cross(e2);
-    auto s2 = s.cross(e1);
+/**
+ * 使用 Moller Trumbore 算法来计算光线和三角形的交点
+ *  b1 和 b2 表示三角形重心差值参数
+ * @param ray
+ * @return
+ */
+Intersection Triangle::intersect(const Ray &ray) {
+    // Moller Trumbore 算法
+    auto E1 = this->B() - this->A();
+    auto E2 = this->C() - this->A();
+    auto S = ray.origin() - this->A();
+    auto S1 = ray.direction().get().cross(E2);
+    auto S2 = S.cross(E1);
 
-    float s1_dot_e1 = s1.dot(e1);
-    if (std::abs(s1_dot_e1) <= std::numeric_limits<float>::epsilon())
+    float S1_dot_S2 = S1.dot(E1);
+    if (std::abs(S1_dot_S2) <= std::numeric_limits<float>::epsilon())
         return Intersection::no_intersect();
 
-    float t_near = s2.dot(e2) / s1_dot_e1;
-    float b1 = s1.dot(s) / s1_dot_e1;
-    float b2 = s2.dot(ray.direction().get()) / s1_dot_e1;
+    float t_near = S2.dot(E2) / S1_dot_S2;
+    float b1 = S1.dot(S) / S1_dot_S2;
+    float b2 = S2.dot(ray.direction().get()) / S1_dot_S2;
 
     // todo 在比较 t_near 时是否可以 epsilon，防止在自身弹射
     if (t_near > 0.f && b1 >= 0.f && b2 >= 0.f &&
         (1.f - b1 - b2) >= -std::numeric_limits<float>::min()) {
-        return Intersection(ray.origin() + t_near * ray.direction().get(), obj->normal(), t_near, obj);
+        return Intersection(ray.origin() + t_near * ray.direction().get(),
+                            this->normal(),
+                            t_near,
+                            this->mat());
     }
 
     return Intersection::no_intersect();
 }
 
-
-Intersection Triangle::obj_sample(const std::shared_ptr<Triangle> &obj, float area_threshold) {
-    assert(area_threshold - obj->area() < epsilon_7);
+Intersection Triangle::obj_sample(float area_threshold) {
+    assert(area_threshold - this->area() < epsilon_7);
 
     // 在三角形内均匀地采样
     float x = std::sqrt(random_float_get());
     float y = random_float_get();
 
-    auto inter_pos = obj->_A * (1.f - x) + obj->_B * (x * (1.f - y)) + obj->_C * (x * y);
-    return Intersection(inter_pos, obj->_normal, -1.f, obj);
+    auto inter_pos = this->_a * (1.f - x) + this->_b * (x * (1.f - y)) + this->_c * (x * y);
+    return Intersection(inter_pos, this->_normal, -1.f, this->mat());
 }
 
 
@@ -104,3 +112,4 @@ MeshTriangle::process_ainode(const aiNode &node, const aiScene &scene) {
 
     return meshes;
 }
+

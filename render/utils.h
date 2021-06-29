@@ -59,6 +59,6 @@ inline Eigen::Vector3f random_point_get(float min, float max) {
 
 
 // 循环的简便写法
-#define LOOP(times) for(int __u_n_i_q_u_e__v_a_r__ = 0; __u_n_i_q_u_e__v_a_r__ < times; ++__u_n_i_q_u_e__v_a_r__)
+#define LOOP(times) for(int __u_n_i_q_u_e__v_a_r__ = 0; __u_n_i_q_u_e__v_a_r__ < (times); ++__u_n_i_q_u_e__v_a_r__)
 
 #endif //RENDER_DEBUG_UTILS_H

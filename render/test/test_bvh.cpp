@@ -7,7 +7,11 @@
 #include "../triangle.h"
 
 
-// 遍历 BVH
+/**
+ * 遍历 BVH
+ * @param node 遍历的根节点
+ * @param func 遍历的函数
+ */
 void BVH_traverse(const std::shared_ptr<BVH> &node, const std::function<void(const BVH &)> &func) {
     assert(node);
     func(*node);
@@ -17,7 +21,7 @@ void BVH_traverse(const std::shared_ptr<BVH> &node, const std::function<void(con
 
 
 // NOTE：对照着那张图片来看这些测试用例
-TEST_CASE("find k_th object, four triangle") {
+TEST_CASE("find-Kth：找到特定方形第 k 大的物体") {
     auto mat = std::shared_ptr<Material>(nullptr);
 
     auto t0 = std::make_shared<Triangle>(Eigen::Vector3f(4, 3, 3),
@@ -40,6 +44,12 @@ TEST_CASE("find k_th object, four triangle") {
                                          Eigen::Vector3f(0, -4, 5),
                                          mat);
 
+    const auto tris = std::vector<std::shared_ptr<Object>>{t0, t1, t2, t3};
+    // 获取 tris 序列重心按特定方向排序的任意位
+    auto get_order = [&tris](ExtensionDir dir, unsigned int order) {
+        return std::get<1>(find_kth_obj(tris, order, dir));
+    };
+
     SECTION("手动计算的包围盒重心是否正确") {
         REQUIRE(t0->bounding_box().center() == Eigen::Vector3f(2, 5, 3 / 2.f));
         REQUIRE(t1->bounding_box().center() == Eigen::Vector3f(-1 / 2.f, 3, 0));
@@ -47,27 +57,21 @@ TEST_CASE("find k_th object, four triangle") {
         REQUIRE(t3->bounding_box().center() == Eigen::Vector3f(1 / 2.f, 3 / 2.f, 3 / 2.f));
     }
 
-    const auto tris = std::vector<std::shared_ptr<Object>>{t0, t1, t2, t3};
-    // 获取 tris 序列重心按特定方向排序的任意位
-    auto get_order = [&tris](ExtensionDir dir, unsigned int order) {
-        return std::get<1>(find_kth_obj(tris, order, dir));
-    };
-
-    SECTION("x direction") {
+    SECTION("x 方向第 k 大的物体") {
         REQUIRE(get_order(ExtensionDir::X, 0) == t2);
         REQUIRE(get_order(ExtensionDir::X, 1) == t1);
         REQUIRE(get_order(ExtensionDir::X, 2) == t3);
         REQUIRE(get_order(ExtensionDir::X, 3) == t0);
     }
 
-    SECTION("y direction") {
+    SECTION("y 方向第 k 大的物体") {
         REQUIRE((get_order(ExtensionDir::Y, 0) == t2 || get_order(ExtensionDir::Y, 0) == t3));
         REQUIRE((get_order(ExtensionDir::Y, 1) == t2 || get_order(ExtensionDir::Y, 1) == t3));
         REQUIRE(get_order(ExtensionDir::Y, 2) == t1);
         REQUIRE(get_order(ExtensionDir::Y, 3) == t0);
     }
 
-    SECTION("z direction") {
+    SECTION("z 方向第 k 大的物体") {
         REQUIRE(get_order(ExtensionDir::Z, 0) == t1);
         REQUIRE((get_order(ExtensionDir::Z, 1) == t0 || get_order(ExtensionDir::Z, 1) == t3));
         REQUIRE((get_order(ExtensionDir::Z, 2) == t0 || get_order(ExtensionDir::Z, 2) == t3));
@@ -76,7 +80,7 @@ TEST_CASE("find k_th object, four triangle") {
 }
 
 
-TEST_CASE("build _bvh") {
+TEST_CASE("建立 BVH") {
     int obj_size = 4;
     std::vector<std::shared_ptr<Object>> objs(obj_size);
 
@@ -92,14 +96,14 @@ TEST_CASE("build _bvh") {
 
     auto root = BVH::build(objs);
 
-    SECTION("node count") {
+    SECTION("检查 BVH 里面节点数量是否正确") {
         // 检查节点数量
         int cnt = 0;
         BVH_traverse(root, [&cnt](const BVH &) { cnt++; });
         REQUIRE(cnt == objs.size() * 2 - 1);
     }
 
-    SECTION("只有叶子节点有 object，非叶子节点有两个 child") {
+    SECTION("确保：只有叶子节点有 object，非叶子节点有两个 child") {
         BVH_traverse(root, [](const BVH &node) {
             if (node.object()) {
                 REQUIRE(node.lchild() == nullptr);
