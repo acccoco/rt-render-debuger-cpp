@@ -10,7 +10,7 @@
 
 ## debug 的示意图
 
-<img src=".pictures/debug.png" style="zoom:50%;" />
+<img src=".pictures/debug.png" height=360 />
 
 
 
@@ -18,7 +18,7 @@
 
 参数：400px，256spp
 
-![](./.pictures/400px-256spp.png)
+<img src="./.pictures/400px-256spp.png" height=360 />
 
 
 
@@ -26,7 +26,7 @@
 
 这里有三个坐标系：世界坐标系，摄像机坐标系，屏幕坐标系。
 
-<img src=".pictures/世界-摄像机-屏幕坐标系.png" style="zoom: 50%;" />
+<img src=".pictures/世界-摄像机-屏幕坐标系.png" height=200 />
 
 
 
@@ -34,7 +34,7 @@
 
 摄像机坐标系固定在摄像机上，`-z` 为摄像机的朝向，不考虑摄像机的桶滚运动，`+x` 为摄像机的右方向：
 
-<img src=".pictures/摄像机坐标系.png" style="zoom:50%;" />
+<img src=".pictures/摄像机坐标系.png" height=200 />
 
 摄像机坐标系的基向量可以表示为：
 
@@ -65,7 +65,7 @@ $$
 
 一般来说，摄像机正对着屏幕，距屏幕一定的距离：
 
-<img src=".pictures/屏幕坐标系.png" style="zoom:50%;" />
+<img src=".pictures/屏幕坐标系.png" height=200 />
 
 
 
@@ -107,7 +107,7 @@ $$
 
 将物体导入后，其 local 坐标系和 global 坐标系的对应图：
 
-<img src=".pictures/Blender的坐标系.png" style="zoom:50%;" />
+<img src=".pictures/Blender的坐标系.png" height=200/>
 
 
 
@@ -115,7 +115,7 @@ $$
 
 这个应用中使用的 cornell-box，其位姿为（local 坐标系）：
 
-<img src=".pictures/cornell-box的位姿.png" style="zoom:50%;" />
+<img src=".pictures/cornell-box的位姿.png" height=200 />
 
 
 
@@ -133,7 +133,7 @@ $$
 
 以下是一个路径节点的示意图：
 
-<img src=".pictures/路径节点的示意图.png" style="zoom:50%;" />
+<img src=".pictures/路径节点的示意图.png" height=200 />
 
 
 
@@ -184,7 +184,7 @@ path tracing 的算法思路是：从摄像机向场景内投射光线，光线�
 
 最终的 `Lo = 0` 
 
-<img src=".pictures/cast-ray-没有相交.png"  style="zoom:50%;" />
+<img src=".pictures/cast-ray-没有相交.png"  height=200 />
 
 
 
@@ -192,7 +192,7 @@ path tracing 的算法思路是：从摄像机向场景内投射光线，光线�
 
 最终的 `Lo = Light.Lo` 
 
-<img src=".pictures/cast-ray-与光源相交.png" style="zoom:50%;" />
+<img src=".pictures/cast-ray-与光源相交.png" height=160 />
 
 
 
@@ -200,7 +200,7 @@ path tracing 的算法思路是：从摄像机向场景内投射光线，光线�
 
 这种情况，需要递归地计算，以俄罗斯轮盘赌来判断光线弹射是否终结
 
-<img src=".pictures/cast-ray-与物体相交.png" style="zoom:40%;" />
+<img src=".pictures/cast-ray-与物体相交.png" height=200 />
 
 
 
@@ -232,13 +232,13 @@ path tracing 的算法思路是：从摄像机向场景内投射光线，光线�
 
 目前想到的解决办法是：让反射光线的原点关于物体法线做一个小的偏移：
 
-<img src=".pictures/弹射光线关于法线偏移.png" style="zoom:50%;" />
+<img src=".pictures/弹射光线关于法线偏移.png" height=160 />
 
 
 
 这样做会有一个问题：弹射光线的交点也和原本的交点有了一个偏移，这个偏移如何计算：
 
-<img src=".pictures/弹射光线偏移计算.png" style="zoom:50%;" />
+<img src=".pictures/弹射光线偏移计算.png" height=160 />
 
 
 
@@ -264,7 +264,7 @@ $$
 
 对于光源，使用了基于光源面积的采样，应该改变积分域：
 
-<img src=".pictures/基于光源面积采样.png" style="zoom:50%;" />
+<img src=".pictures/基于光源面积采样.png" height=200 />
 
 
 
@@ -329,7 +329,7 @@ $$
 
 ## 多线程部分的示意图
 
-<img src=".pictures/多线程任务框架.png" style="zoom:50%;" />
+<img src=".pictures/多线程任务框架.png" height=200 />
 
 
 
