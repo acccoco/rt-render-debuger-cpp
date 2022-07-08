@@ -51,7 +51,7 @@ set(tests
         sqlite)
 
 foreach (target ${tests})
-    add_executable(test-${target} test/test_${target} ${SOURCES})
+    add_executable(test-${target} test/test_${target}.cpp ${SOURCES})
     target_link_libraries(test-${target} PRIVATE ${LINKS})
     target_include_directories(test-${target} PRIVATE ${PROJECT_SOURCE_DIR})
 endforeach ()

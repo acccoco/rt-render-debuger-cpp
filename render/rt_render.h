@@ -64,6 +64,10 @@ public:
      */
     static void render_single_thread(const std::string &db_path);
 
+
+    static void render_atomic(const std::string &db_path);
+
+
     /**
      * 使用多线程来渲染场景
      * @param worker_buffer_size worker 缓存的大小，缓存越小，加锁越频繁

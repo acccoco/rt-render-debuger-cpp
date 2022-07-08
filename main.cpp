@@ -10,7 +10,8 @@
 #include "render/ray_path_serialize.h"
 
 
-int main() {
+int main()
+{
     // 导入模型
     auto floor = MeshTriangle::mesh_load(PATH_CORNELL_FLOOR)[0];
     floor->mat()->set_diffuse(color_cornel_white);
@@ -26,8 +27,7 @@ int main() {
     light->mat()->set_emission(color_cornel_light);
 
     // 构建场景
-    auto scene = std::make_shared<Scene>(40, 40, 40.f,
-                                         Eigen::Vector3f{0.f, 0.f, 1.f},
+    auto scene = std::make_shared<Scene>(256, 256, 40.f, Eigen::Vector3f{0.f, 0.f, 1.f},
                                          Eigen::Vector3f{278.f, 273.f, -800.f});
     scene->obj_add(floor);
     scene->obj_add(left);
@@ -38,10 +38,11 @@ int main() {
     scene->build();
 
     /* 进行渲染 */
-    RTRender::init(scene, 1);
+    RTRender::init(scene, 4);
     auto start = std::chrono::system_clock::now();
-    RTRender::render_multi_thread(DB_PATH, 4, 400, 100, 500);
+    // RTRender::render_multi_thread(DB_PATH, 8, 400, 100, 500);
     // RTRender::render_single_thread(DB_PATH);
+    RTRender::render_atomic(DB_PATH);
     auto stop = std::chrono::system_clock::now();
     RTRender::write_to_file(RTRender::framebuffer, RT_RES, scene->screen_width(), scene->screen_height());
 
@@ -52,4 +53,3 @@ int main() {
                std::chrono::duration_cast<std::chrono::seconds>(stop - start).count() % 60);
     return 0;
 }
-
